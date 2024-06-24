@@ -42,7 +42,7 @@ namespace Server.DAL.Services
 		public void InsertMessage(DALMessageModel _message)
 		{
 			string sqlRequest = $"INSERT INTO Messages (FromUserID, ToUserID, Date, MessageText, MessageContent, IsRead, IsDelivered)" +
-			$"VALUES ({_message.FromUserID}, {_message.ToUserID}, '{_message.Date}', '{_message.MessageText}', {_message.MessageContent}, {_message.IsRead}, {_message.IsDelivered})";
+			$"VALUES ({_message.FromUserID}, {_message.ToUserID}, '{_message.Date}', '{_message.MessageText}', '{_message.MessageContent}', {_message.IsRead}, {_message.IsDelivered})";
 			_db.Open();
 			_db.Execute(sqlRequest);
 			_db.Close();
@@ -51,7 +51,7 @@ namespace Server.DAL.Services
 		public void UpdateMessage(DALMessageModel _message)
 		{
 			string sqlRequest = $"UPDATE Messages SET FromUserID = {_message.FromUserID}, ToUserID = {_message.ToUserID}," +
-				$"Date = N'{_message.Date}', MessageText = N'{_message.MessageText}', MessageContent = N'{_message.MessageContent}', IsRead = {_message.IsRead}, IsDelivered = {_message.IsDelivered})"+
+				$"Date = '{_message.Date}', MessageText = '{_message.MessageText}', MessageContent = '{_message.MessageContent}', IsRead = {_message.IsRead}, IsDelivered = {_message.IsDelivered} "+
 				$"WHERE  Id = {_message.Id}";
 			_db.Open();
 			_db.Execute(sqlRequest);
