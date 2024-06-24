@@ -9,7 +9,7 @@ namespace Server.DAL.Services
 	{
 
 		private readonly SqliteConnection _db;
-		public SQLLiteServiceUsers(string connectionString = "ServerDB.db")
+		public SQLLiteServiceUsers(string connectionString = "Data Source=ServerDB.db;")
 		{
 			if (string.IsNullOrEmpty(connectionString))
 			{
@@ -32,8 +32,8 @@ namespace Server.DAL.Services
 		public DALClientModel FindUserByLogin(string _login, string tableName = "Users", string columnName = "Login")
 		{
 			_db.Open();
-			var sql = $"SELECT * FROM {tableName} WHERE {columnName} = {_login}";
-			DALClientModel result = _db.QuerySingle(sql);
+			var sql = $"SELECT * FROM {tableName} WHERE {columnName} = '{_login}'";
+			var result = _db.QueryFirst<DALClientModel>(sql);
 			_db.Close();
 			return result;
 		}
@@ -42,15 +42,15 @@ namespace Server.DAL.Services
 		{
 			_db.Open();
 			var sql = $"SELECT * FROM {tableName} WHERE {columnName} = {_id}";
-			DALClientModel result = _db.QuerySingle(sql);
+			DALClientModel result = _db.QueryFirst<DALClientModel>(sql);
 			_db.Close();
 			return result;
 		}
 
 		public void InsertUser(DALClientModel _newUser)
 		{
-			string sqlRequest = $"INSERT INTO Users (Login, Password, FirstName, SecondName, Status, LastVisit)"+ 
-                   $"VALUES ('{_newUser.Login}', '{_newUser.Password}', '{_newUser.FirstName}', '{_newUser.SecondName}', {_newUser.Status}, '{_newUser.LastVisit}')";
+			string sqlRequest = $"INSERT INTO Users (Login, Password, FirstName, SecondName, Status, LastVisit)" +
+				   $"VALUES ('{_newUser.Login}', '{_newUser.Password}', '{_newUser.FirstName}', '{_newUser.SecondName}', {_newUser.Status}, '{_newUser.LastVisit}')";
 			_db.Open();
 			_db.Execute(sqlRequest);
 			_db.Close();
@@ -58,15 +58,15 @@ namespace Server.DAL.Services
 
 		public void UpdateUser(DALClientModel _user)
 		{
-			string sqlRequest = $"UPDATE Users SET  Login = N'{_user.Login}', Password = '{_user.Password}'," +
-				$"FirstName = N'{_user.FirstName}', SecondName = N'{_user.SecondName}', Status = {_user.Status}, LastVisit = N'{_user.LastVisit}')"+
+			string sqlRequest = $"UPDATE Users SET  Login = '{_user.Login}', Password = '{_user.Password}'," +
+				$"FirstName = '{_user.FirstName}', SecondName = '{_user.SecondName}', Status = {_user.Status}, LastVisit = '{_user.LastVisit}' " +
 				$"WHERE Id = {_user.Id}";
 			_db.Open();
 			_db.Execute(sqlRequest);
 			_db.Close();
 		}
 
-		void IcrudUsers.DeleteUser(DALClientModel _user)
+		public void DeleteUser(DALClientModel _user)
 		{
 			string sqlRequest = $"DELETE FROM Users WHERE Id = {_user.Id}";
 			_db.Open();

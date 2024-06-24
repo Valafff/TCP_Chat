@@ -1,13 +1,24 @@
 ﻿using Server.DAL.Services;
 
 Server.DAL.Services.SQLLiteServiceMasseges serv = new SQLLiteServiceMasseges();
+Server.DAL.Services.SQLLiteServiceUsers serviceUsers = new SQLLiteServiceUsers();
 //serv.InsertMessage(new Server.DAL.Models.DALMessageModel() { FromUserID = 100, ToUserID = 200, Date = "24.06.2024", MessageText = "Hello World!", MessageContent = "PathPathPath", IsRead = 0, IsDelivered = 0 });
 //serv.UpdateMessage(new Server.DAL.Models.DALMessageModel() {Id = 5, FromUserID = 333, ToUserID = 200, Date = "24.06.2024", MessageText = "Hello World!", MessageContent = "PathPathPath", IsRead = 0, IsDelivered = 0 });
 //serv.DeleteMessage(new Server.DAL.Models.DALMessageModel() { Id = 5 });
 //var t = serv.GetAllMessegesReciverID(200);
 
-Server.DAL.Services.SQLLiteServiceUsers serviceUsers = new SQLLiteServiceUsers();
-serviceUsers.GetAllRegistredUsers
+
+//serviceUsers.InsertUser(new Server.DAL.Models.DALClientModel() { Login = "Василий777", Password = "111", FirstName = "Vasily", SecondName = "Pupkin", Status = 1, LastVisit = "24.06.2024" });
+//serviceUsers.UpdateUser(new Server.DAL.Models.DALClientModel() {Id = 1, Login = "Vas777", Password = "111", FirstName = "Василий", SecondName = "Пупкин", Status = 1, LastVisit = "24.06.2024" });
+
+//var u = serviceUsers.FindUserByLogin("Vas777");
+//var u = serviceUsers.FindUserById(1);
+//var t = serviceUsers.GetAllRegistredUsers();
+
+//serviceUsers.DeleteUser(new Server.DAL.Models.DALClientModel() { Id = 1 });
+
+//var t = serviceUsers.GetAllRegistredUsers();
+
 
 
 Console.WriteLine("OK");
