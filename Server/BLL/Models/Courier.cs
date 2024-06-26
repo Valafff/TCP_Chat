@@ -15,7 +15,7 @@ namespace Server.BLL.Models
 
     public class Content
     {
-        public string FileName { get; set; }
+        public string ServiceText { get; set; }
         public byte[] Entity { get; set; }
     }
 }

@@ -3,16 +3,17 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using Server.BLL.Models;
 
-namespace Server.BLL.Models
+namespace Server.BLL.Services
 {
-	public class SlimUsersDictionatry
+	static public class SlimUsersDictionatry
 	{
-		public Dictionary<int, string> GetSlimUsersIdLogin()
+		static public Dictionary<int, string> GetSlimUsersIdLogin()
 		{
 			DAL.Services.SQLLiteServiceUsers service = new DAL.Services.SQLLiteServiceUsers();
 			Dictionary<int, string> usersDict = new Dictionary<int, string>();
-			var DALUsers = service.GetAllRegistredUsers();		
+			var DALUsers = service.GetAllRegistredUsers();
 			foreach (var DALuser in DALUsers)
 			{
 				BLLSlimClientModel user = Mappers.BLMapper.SlimMapClientDALToClientBLL(DALuser);

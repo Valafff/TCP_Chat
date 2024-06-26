@@ -1,12 +1,12 @@
-﻿using Server.BLL.Models;
-using Server.BLL;
+﻿using Server.BLL;
 using Server.DAL.Services;
+using Server.BLL.Services;
 
 const int ServerPort = 8888;
 
 //Server.DAL.Services.SQLLiteServiceMasseges serv = new SQLLiteServiceMasseges();
 //Server.DAL.Services.SQLLiteServiceUsers serviceUsers = new SQLLiteServiceUsers();
-SlimUsersDictionatry dictionatry = new SlimUsersDictionatry();
+//SlimUsersDictionatry dictionatry = new SlimUsersDictionatry();
 
 //serv.InsertMessage(new Server.DAL.Models.DALMessageModel() { FromUserID = 100, ToUserID = 200, Date = "24.06.2024", MessageText = "Hello World!", MessageContent = "PathPathPath", IsRead = 0, IsDelivered = 0 });
 //serv.UpdateMessage(new Server.DAL.Models.DALMessageModel() {Id = 5, FromUserID = 333, ToUserID = 200, Date = "24.06.2024", MessageText = "Hello World!", MessageContent = "PathPathPath", IsRead = 0, IsDelivered = 0 });
