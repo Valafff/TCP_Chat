@@ -23,7 +23,7 @@ namespace Server.DAL.Services
 		public IEnumerable<DALClientModel> GetAllRegistredUsers(string tableName = "Users")
 		{
 			_db.Open();
-			var sql = $"SELECT * FROM {tableName}";
+			var sql = $"SELECT * FROM {tableName} WHERE Status = 1"; //0 удален
 			IEnumerable<DALClientModel> result = _db.Query<DALClientModel>(sql);
 			_db.Close();
 			return result;
@@ -69,6 +69,14 @@ namespace Server.DAL.Services
 		public void DeleteUser(DALClientModel _user)
 		{
 			string sqlRequest = $"DELETE FROM Users WHERE Id = {_user.Id}";
+			_db.Open();
+			_db.Execute(sqlRequest);
+			_db.Close();
+		}
+
+		public void DeleteUser(int Id)
+		{
+			string sqlRequest = $"DELETE FROM Users WHERE Id = {Id}";
 			_db.Open();
 			_db.Execute(sqlRequest);
 			_db.Close();
