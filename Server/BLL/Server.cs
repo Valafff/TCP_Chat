@@ -38,7 +38,7 @@ namespace Server.BLL
 		const string CommandMessageFrom = "MessageFrom"; //Команда клиенту - прими сообщение от такого то пользователя
 		
 		Dictionary<int, string> RegistredClients = new Dictionary<int, string>();
-		List<TcpClient> ActiveClients = new List<TcpClient>();
+		List<ActiveClientLogin> ActiveClients = new List<ActiveClientLogin>();
 		
 		TcpListener tcpListener;
 
@@ -161,7 +161,7 @@ namespace Server.BLL
 							byte[] buffer = Encoding.UTF8.GetBytes(AnswerRegisterOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-							ActiveClients.Add(tcpClient);
+							ActiveClients.Add(new ActiveClientLogin() {ActiveClient = tcpClient, Login = newClient.Login });
 							StepTwoOk = true;
 							await Console.Out.WriteLineAsync($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -183,7 +183,7 @@ namespace Server.BLL
 							byte[] buffer = Encoding.UTF8.GetBytes(AnswerAuthorizationOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-							ActiveClients.Add(tcpClient);
+							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = AuthorizeUser.Key});
 							StepTwoOk = true;
 							await Console.Out.WriteLineAsync($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -206,9 +206,9 @@ namespace Server.BLL
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
 							StepTwoOk = false;
-							if (ActiveClients.Contains(tcpClient))
+							if (ActiveClients.Any(c => c.ActiveClient == tcpClient))
 							{
-								ActiveClients.Remove(tcpClient);
+								ActiveClients.RemoveAt( ActiveClients.FindIndex(c => c.ActiveClient == tcpClient));
 							}
 							await Console.Out.WriteLineAsync($"Пользователь {DeletingUser.Key} удален\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -223,9 +223,9 @@ namespace Server.BLL
 				}
 				else
 				{
-					if (ActiveClients.Contains(tcpClient))
+					if (ActiveClients.Any(c => c.ActiveClient == tcpClient))
 					{
-						ActiveClients.Remove(tcpClient);
+						ActiveClients.RemoveAt(ActiveClients.FindIndex(c => c.ActiveClient == tcpClient));
 					}
 					await Console.Out.WriteLineAsync($"Клиент {tcpClient.Client.RemoteEndPoint} выполнил недопустимую операцию. Связь разорвана\t{DateTime.Now}");
 					await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -235,7 +235,7 @@ namespace Server.BLL
 			}
 
 
-			void PushActiveClients(List<TcpClient> _clients, string _sendByLogin)
+			void PushActiveClients(List<ActiveClientLogin> _clients, string _sendByLogin)
 			{
 
 				
@@ -244,7 +244,7 @@ namespace Server.BLL
 
 		}
 
-		void CheckActiveClients(List<TcpClient> _clients)
+		void CheckActiveClients(List<ActiveClientLogin> _clients)
 		{
 			object LockObj = new object();
 			do
@@ -254,9 +254,9 @@ namespace Server.BLL
 				{
 					for (int i = 0; i < _clients.Count; i++)
 					{
-						if (!_clients[i].Connected)
+						if (!_clients[i].ActiveClient.Connected)
 						{
-							Console.WriteLine($"Клиент {_clients[i].Client.RemoteEndPoint} отключился\t{DateTime.Now}");
+							Console.WriteLine($"Клиент {_clients[i].ActiveClient.Client.RemoteEndPoint} отключился\t{DateTime.Now}");
 							_clients.Remove(_clients[i]);
 							Console.WriteLine($"Активные клиенты {_clients.Count}");
 						}
