@@ -9,7 +9,7 @@ using System.Threading.Tasks;
 
 namespace Server.BLL.Services
 {
-	internal class MessageService
+	public  class MessageService
 	{
 		const int UNREAD = 0;
 		DAL.Services.SQLLiteServiceMasseges service = new DAL.Services.SQLLiteServiceMasseges();
@@ -29,8 +29,12 @@ namespace Server.BLL.Services
 			return messages;
 		}
 
-		//Написать сообщение - Подключенный клиент отправляет сообщение
 		public void UpdateMessage(BLLMessageModel _model, Dictionary<int, string> _slimClients)
+		{
+			service.UpdateMessage(Mappers.BLMapper.MapMesBLLLToMesDAL(_model, _slimClients));
+		}
+
+		public void InsertMessage(BLLMessageModel _model, Dictionary<int, string> _slimClients)
 		{
 			service.InsertMessage(Mappers.BLMapper.MapMesBLLLToMesDAL(_model, _slimClients));
 		}
