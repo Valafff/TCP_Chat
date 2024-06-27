@@ -13,7 +13,7 @@ namespace Server.BLL.Models
 		public BLLSlimClientModel UserReciver { get; set; } // кому отправлено сообщения
 		public DateTime Date { get; set; }
 		public string MessageText { get; set; } // текст сообщения
-		public List<string> MessageContentPaths { get; set; } // Пути к файлам
+		public List<string> MessageContentNames { get; set; } // Пути к файлам
 		public int IsRead { get; set; }
 		public int IsDelivered { get; set; }
 	}

@@ -72,14 +72,14 @@ namespace Server.BLL.Mappers
 				UserReciver = SlimMapClientDALToClientBLL(_slimClients.Keys.FirstOrDefault(_mesDAL.ToUserID), _slimClients.GetValueOrDefault(_mesDAL.ToUserID)),
 				Date = DateTime.Parse(_mesDAL.Date),
 				MessageText = _mesDAL.MessageText,
-				MessageContentPaths = JsonSerializer.Deserialize<List<string>>(_mesDAL.MessageContent),
+				MessageContentNames = JsonSerializer.Deserialize<List<string>>(_mesDAL.MessageContent),
 				IsRead = _mesDAL.IsRead,
 				IsDelivered = _mesDAL.IsDelivered
 			};
 		}
 
 		//Мапирование сообщения в DAL через загруженный словарь с BLLSlimClientModel
-		public static DALMessageModel MapMesDALToMesBLL(BLLMessageModel _mesBLL, Dictionary<int, string> _slimClients)
+		public static DALMessageModel MapMesBLLLToMesDAL(BLLMessageModel _mesBLL, Dictionary<int, string> _slimClients)
 		{
 			return new DALMessageModel()
 			{
@@ -88,7 +88,7 @@ namespace Server.BLL.Mappers
 				ToUserID = _mesBLL.UserReciver.Id,
 				Date = _mesBLL.Date.ToString(),
 				MessageText = _mesBLL.MessageText,
-				MessageContent = JsonSerializer.Serialize(_mesBLL.MessageContentPaths),
+				MessageContent = JsonSerializer.Serialize(_mesBLL.MessageContentNames),
 				IsRead =_mesBLL.IsRead,
 				IsDelivered = _mesBLL.IsDelivered
 			};

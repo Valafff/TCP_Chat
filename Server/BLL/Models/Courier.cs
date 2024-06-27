@@ -9,6 +9,8 @@ namespace Server.BLL.Models
 	public class Courier
 	{
         public string Header { get; set; }
+		public string SenderLogin { get; set; }
+		public string ReciverLogin { get; set; }
         public string MessageText { get; set; }
         public Content Attachment { get; set; }
     }
@@ -17,5 +19,7 @@ namespace Server.BLL.Models
     {
         public string ServiceText { get; set; }
         public byte[] Entity { get; set; }
+        public Dictionary<string, byte[]> FileNameEntity { get; set; }
+
     }
 }

@@ -9,6 +9,7 @@ using System.Net.Security;
 using Server.Tools;
 using Server.BLL.Models;
 using System.Text.Json;
+using Server.BLL.Services;
 
 namespace Server.BLL
 {
@@ -36,16 +37,17 @@ namespace Server.BLL
 		const string AnswerCatchMessages = "CatchMessages";
 		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
 		const string CommandMessageFrom = "MessageFrom"; //Команда клиенту - прими сообщение от такого то пользователя
-		
+
+		//Id зарегистрированных клиентов и их логины
 		Dictionary<int, string> RegistredClients = new Dictionary<int, string>();
+		//Связь активных клиентов и их логинов
 		List<ActiveClientLogin> ActiveClients = new List<ActiveClientLogin>();
-		
+
 		TcpListener tcpListener;
 
 		public Server(int _port)
 		{
 			Port = _port;
-			tcpListener =
 			tcpListener = new TcpListener(IPAddress.Any, Port); // сервер для прослушивания
 			RegistredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
 		}
@@ -56,7 +58,7 @@ namespace Server.BLL
 
 			try
 			{
-				//Запускаем сервер на прослущивание
+				//Запускаем сервер на прослушивание
 				tcpListener.Start();
 				Console.WriteLine("Сервер запущен");
 
@@ -66,12 +68,14 @@ namespace Server.BLL
 					TcpClient tcpClient = tcpListener.AcceptTcpClient();
 					//Создаем новое подключение для клиента в отдельном потоке
 					Task.Factory.StartNew(async () => await ProcessClientAsync(tcpClient), TaskCreationOptions.LongRunning);
-					Task.Factory.StartNew(()=> CheckActiveClients(ActiveClients), TaskCreationOptions.LongRunning);
+					//Проверка активных подключений
+					Task.Factory.StartNew(() => CheckActiveClients(ActiveClients), TaskCreationOptions.LongRunning);
 				}
 			}
 			catch (Exception ex)
 			{
 				Console.WriteLine(ex.Message);
+				Console.WriteLine("Ошибка сервера");
 			}
 			finally
 			{
@@ -83,27 +87,38 @@ namespace Server.BLL
 		{
 			NetworkStream stream = tcpClient.GetStream();
 
-			bool StepOneOk = false;
-			bool StepTwoOk = false;
+			bool AuthtorizationStatus = false;
+			bool WorkStatus = false;
 
 			while (true)
-			{			
-				var inputcommand = ByteToString.GetStringFromStream(stream);
+			{
+				string inputcommand="";
+				//Расшифровка сообщений до авторизации
+				if (!WorkStatus)
+				{
+					inputcommand = ByteToString.GetStringFromStream(stream);
+				}
+				//Расшифровка сообщений после авторизации
+				else
+				{
+					
+				}
+
 
 				////Отладка
 				//await Console.Out.WriteLineAsync(inputcommand);
 
 				//Контрольное слово для отсеивания тех, кого не звали
-				if (inputcommand.ToString() == CommandHelloMsr && !StepOneOk)
+				if (inputcommand.ToString() == CommandHelloMsr && !AuthtorizationStatus)
 				{
-					await Console.Out.WriteLineAsync($"Попытка подключения {tcpClient.Client.RemoteEndPoint} одобрена\t{DateTime.Now}") ;					
+					await Console.Out.WriteLineAsync($"Попытка подключения {tcpClient.Client.RemoteEndPoint} одобрена\t{DateTime.Now}");
 					byte[] buffer = Encoding.UTF8.GetBytes(AnswerHelloUser);
 					await stream.WriteAsync(buffer, 0, buffer.Length);
 					await stream.FlushAsync();
-					StepOneOk = true;
+					AuthtorizationStatus = true;
 				}
-				//Логика отправки, получения, удаления сообщений, запрос клиентов
-				else if (StepTwoOk)
+				//Логика отправки, получения, запрос клиентов, запрос активных клиентов
+				else if (WorkStatus)
 				{
 					Courier MessageWorks = new Courier();
 					BLL.Services.AccountService service = new BLL.Services.AccountService();
@@ -115,15 +130,28 @@ namespace Server.BLL
 					{
 						await Console.Out.WriteLineAsync(ex.Message);
 						await Console.Out.WriteLineAsync("Ошибка Message-сервиса: некорректная десериализация сообщения");
-						StepOneOk = false;
+						AuthtorizationStatus = false;
 					}
 
-					////Получение запроса на отправку зарегистрированных клиентов Header : GetMeUsersLogin
-					if (MessageWorks.Header.Contains(CommandGetMeUsers))
+					//Запрос на отправку активных клиентов для текущего соединения без текущего клиента
+					if (MessageWorks.Header == CommandGetMeActiveUsers)
 					{
-						string login = MessageWorks.Header.Replace(CommandGetMeUsers, "");
-						PushActiveClients(ActiveClients, login);
+						PushActiveClients();
 					}
+
+					//Запрос на отправку зарегистрированнх клиентов с текущим клиентом
+					if (MessageWorks.Header == CommandGetMeUsers)
+					{
+						PushRegistredClients();
+					}
+
+					//Запрос на отправку непрочитанных сообщений 
+					if (MessageWorks.Header == CommandGiveMeUnReadMes)
+					{
+						PushUnreadMessages();
+					}
+					//Запрос на отправку сообщения другому пользователю
+
 
 
 
@@ -137,7 +165,7 @@ namespace Server.BLL
 
 				}
 				//Блок регистрации авторизации удаления аккаунта
-				else if (StepOneOk)
+				else if (AuthtorizationStatus)
 				{
 					Content AccountWorks = new Content();
 					BLL.Services.AccountService service = new BLL.Services.AccountService();
@@ -147,22 +175,25 @@ namespace Server.BLL
 					}
 					catch (Exception ex)
 					{
-                        await Console.Out.WriteLineAsync(ex.Message);
+						await Console.Out.WriteLineAsync(ex.Message);
 						await Console.Out.WriteLineAsync("Ошибка Аккаунт-сервиса: некорректная десериализация пользователя");
-						StepOneOk = false;
+						AuthtorizationStatus = false;
 					}
 					//РЕГИСТРАЦИЯ
 					if (AccountWorks.ServiceText == CommandRegisterMe)
 					{
 						BLLClientModel newClient = JsonSerializer.Deserialize<BLLClientModel>(Encoding.UTF8.GetString(AccountWorks.Entity));
-						bool registrationStatus = service.Register(newClient, RegistredClients);
+						bool registrationStatus = ClientDirectoryCreation.AddClientDirectory(newClient.Login);
+						if (registrationStatus)
+							registrationStatus = service.Register(newClient, RegistredClients);
+
 						if (registrationStatus)
 						{
 							byte[] buffer = Encoding.UTF8.GetBytes(AnswerRegisterOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-							ActiveClients.Add(new ActiveClientLogin() {ActiveClient = tcpClient, Login = newClient.Login });
-							StepTwoOk = true;
+							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = newClient.Login });
+							WorkStatus = true;
 							await Console.Out.WriteLineAsync($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
 						}
@@ -172,7 +203,7 @@ namespace Server.BLL
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
 						}
-                    }
+					}
 					//АВТОРИЗАЦИЯ
 					if (AccountWorks.ServiceText == CommandAuthorizeMe)
 					{
@@ -183,8 +214,8 @@ namespace Server.BLL
 							byte[] buffer = Encoding.UTF8.GetBytes(AnswerAuthorizationOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = AuthorizeUser.Key});
-							StepTwoOk = true;
+							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = AuthorizeUser.Key });
+							WorkStatus = true;
 							await Console.Out.WriteLineAsync($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
 						}
@@ -205,10 +236,10 @@ namespace Server.BLL
 							byte[] buffer = Encoding.UTF8.GetBytes(AnswerDeleteOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-							StepTwoOk = false;
+							WorkStatus = false;
 							if (ActiveClients.Any(c => c.ActiveClient == tcpClient))
 							{
-								ActiveClients.RemoveAt( ActiveClients.FindIndex(c => c.ActiveClient == tcpClient));
+								ActiveClients.RemoveAt(ActiveClients.FindIndex(c => c.ActiveClient == tcpClient));
 							}
 							await Console.Out.WriteLineAsync($"Пользователь {DeletingUser.Key} удален\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -234,13 +265,94 @@ namespace Server.BLL
 				}
 			}
 
-
-			void PushActiveClients(List<ActiveClientLogin> _clients, string _sendByLogin)
+			//Протестировать!
+			//Для текущего подключения
+			async void PushActiveClients()
 			{
+				try
+				{
+					List<ActiveClientLogin> OutherActiveClients = new List<ActiveClientLogin>();
+					foreach (var item in ActiveClients)
+					{
+						if (item.ActiveClient != tcpClient)
+						{
+							OutherActiveClients.Add(item);
+						}
+					}
+					Content content = new Content();
+					content.ServiceText = AnswerCatchActiveUsers;
+					content.Entity = JsonSerializer.SerializeToUtf8Bytes(OutherActiveClients);
+					var meassage = JsonSerializer.SerializeToUtf8Bytes(content);
+					await stream.WriteAsync(meassage, 0, meassage.Length);
+					await stream.FlushAsync();
+				}
+				catch (Exception ex)
+				{
 
-				
+                    await Console.Out.WriteLineAsync(ex.Message);
+                    await Console.Out.WriteLineAsync("Ошибка PushActiveClients");
+                }
 
 			}
+
+			//Протестировать!
+			//Для текущего подключения
+			async void PushRegistredClients()
+			{
+				try
+				{
+				List<string> RegisteredClients = new List<string>();
+				foreach (var item in RegistredClients)
+				{
+					RegisteredClients.Add(item.Value);
+				}
+				Content content = new Content();
+				content.ServiceText = AnswerCatchUsers;
+				content.Entity = JsonSerializer.SerializeToUtf8Bytes(RegisteredClients);
+				var meassage = JsonSerializer.SerializeToUtf8Bytes(content);
+				await stream.WriteAsync(meassage, 0, meassage.Length);
+				await stream.FlushAsync();
+				}
+				catch (Exception ex)
+				{
+					await Console.Out.WriteLineAsync(ex.Message);
+					await Console.Out.WriteLineAsync("Ошибка PushRegistredClients");
+				}
+
+			}
+
+			//Протестировать!
+			//Для текущего клиента
+			async void PushUnreadMessages()
+			{
+				try
+				{
+					string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
+					int userId = (RegistredClients.First(l => l.Value == userReciverLogin)).Key;
+					MessageService service = new MessageService();
+					//Получен список непрочитанных сообщений с ссылками на вложения
+					List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, RegistredClients);
+
+					foreach (var message in unreadMessages)
+					{
+						byte[] outputArray = CourierServices.Packer(message.UserSender.Login, userReciverLogin, AnswerCatchMessages, message.MessageText, message.MessageContentNames);
+						await stream.WriteAsync(outputArray, 0, outputArray.Length);
+						await stream.FlushAsync();
+
+						//внесение данных в БД об отправлении сообщения ПОЛУЧЕНИЕ НЕ ФИКСИРУЕТЯ
+						message.IsDelivered = 1;
+						service.UpdateMessage(message, RegistredClients);
+					}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+					Console.WriteLine("Ошибка поиска и отправления непрочитанных сообщений");
+				}
+			}
+
+			//Протестировать!
+			//Для текущего клиента
 
 		}
 
