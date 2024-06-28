@@ -1,0 +1,24 @@
+﻿<Window x:Class="Client.Windows.OptionsWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:local="clr-namespace:Client.Windows"
+        mc:Ignorable="d"
+        Title="Настройки" Height="200" Width="300"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Адрес сервера" VerticalAlignment="Center"  Margin="5"/>
+        <TextBox Grid.Row="1" x:Name="TbServerIp" Margin="5"/>
+        <TextBlock Grid.Row="2" Text="Порт сервера" VerticalAlignment="Center" Margin="5" />
+        <TextBox Grid.Row="3" x:Name="TbServerPort" Margin="5"/>
+        <Button Grid.Row="5" Content="Сохранить настройки" x:Name="Bt_SaveConfig" Margin="50,5,50,5" Click="Bt_SaveConfig_Click" />
+    </Grid>
+</Window>

@@ -9,9 +9,19 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Folder Include="BLL\" />
-    <Folder Include="UI\WindowsModels\" />
-    <Folder Include="UI\ViewModels\" />
+    <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.122" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="ConfigSerializeDeserialize">
+      <HintPath>ConfigSerializeDeserialize.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="ConfigSerializeDeserialize.dll">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>
