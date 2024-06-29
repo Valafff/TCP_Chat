@@ -12,13 +12,13 @@ using Client.Windows;
 using Client.ViewModels;
 using Client.Models;
 using ConfigSerializeDeserialize;
+using System.Net;
 
 namespace Client
 {
 
 	public partial class MainWindow : Window
 	{
-		MainMenu main =new MainMenu();
 		UserConfig user =  new UserConfig();
 		ChatConfig chat = new ChatConfig();
 
@@ -35,23 +35,26 @@ namespace Client
 				ConfigWriteReadJson.ReWriteConfig(chat, "Options.json");
 			}
 
-			InitializeComponent();
-			DataContext = main;
 			if (chat.ServerIP == null || chat.ServerPort == 0 )
 			{
 				OptionsWindow options = new OptionsWindow();
 				options.ShowDialog();
 			}
 
+			MainMenu main = new MainMenu();
+
+			main.TCPClientWork(IPAddress.Parse(chat.ServerIP), chat.ServerPort);
+			Task.Run(new Action(() => main.NetworkStreamReader()));
+			
+			DataContext = main;
+			InitializeComponent();
+
 			if (user.Login == null)
 			{
 				RegistrationWindow reqAuth = new RegistrationWindow();
 				reqAuth.ShowDialog();
 			}
-			else
-			{
-			
-			}
+
 
 		}
 

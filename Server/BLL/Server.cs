@@ -16,8 +16,8 @@ namespace Server.BLL
 {
 	public class Server
 	{
-		static int Port = 2222;
-		const int delay = 500;
+		static int Port = 8888;
+		const int delay = 1000;
 		//Система команд
 		const string CommandHelloMsr = "HelloMsr";
 		const string AnswerHelloUser = "HelloClientGoStep2";
@@ -54,9 +54,9 @@ namespace Server.BLL
 		}
 
 
-		public void StartServer()
+		public async void StartServer()
 		{
-
+			bool itsWork = false;
 			try
 			{
 				//Запускаем сервер на прослушивание
@@ -68,9 +68,14 @@ namespace Server.BLL
 					//Ждем входящее подключение
 					TcpClient tcpClient = tcpListener.AcceptTcpClient();
 					//Создаем новое подключение для клиента в отдельном потоке
-					Task.Factory.StartNew(async () => await ProcessClientAsync(tcpClient), TaskCreationOptions.LongRunning);
+					_ = Task.Factory.StartNew(() => ProcessClientAsync(tcpClient), TaskCreationOptions.LongRunning);
 					//Проверка активных подключений
-					Task.Factory.StartNew(() => CheckActiveClients(ActiveClients), TaskCreationOptions.LongRunning);
+					if (!itsWork)
+					{
+						_ = Task.Factory.StartNew(() => CheckActiveClients(ActiveClients), TaskCreationOptions.LongRunning);
+						itsWork = true;
+					}
+
 				}
 			}
 			catch (Exception ex)
@@ -90,15 +95,15 @@ namespace Server.BLL
 
 			bool AuthtorizationStatusOK = false;
 			bool WorkStatusOK = false;
-
-			while (true)
+            while (true)
 			{
 				string inputcommand="";
 				byte[] workLeveldata = null;
 				//Расшифровка сообщений до авторизации
-				if (!WorkStatusOK)
+				if (!WorkStatusOK )
 				{
-					inputcommand = ByteToString.GetStringFromStream(stream);
+					inputcommand =  ByteToString.GetStringFromStream(stream);
+					
 				}
 				//Расшифровка сообщений после авторизации
 				else
@@ -106,18 +111,26 @@ namespace Server.BLL
 					workLeveldata = StreamToByte.StreamToByteArr(stream);
 				}
 
-
 				////Отладка
 				//await Console.Out.WriteLineAsync(inputcommand);
 
 				//Контрольное слово для отсеивания тех, кого не звали
 				if (inputcommand.ToString() == CommandHelloMsr && !AuthtorizationStatusOK)
 				{
-					await Console.Out.WriteLineAsync($"Попытка подключения {tcpClient.Client.RemoteEndPoint} одобрена\t{DateTime.Now}");
-					byte[] buffer = Encoding.UTF8.GetBytes(AnswerHelloUser);
-					await stream.WriteAsync(buffer, 0, buffer.Length);
-					await stream.FlushAsync();
-					AuthtorizationStatusOK = true;
+					try
+					{
+
+						Console.WriteLine($"Попытка подключения {tcpClient.Client.RemoteEndPoint} одобрена\t{DateTime.Now}");
+						byte[] buffer = Encoding.UTF8.GetBytes(AnswerHelloUser);
+						stream.Write(buffer, 0, buffer.Length);
+						//stream.FlushAsync();
+						AuthtorizationStatusOK = true;
+					}
+					catch (Exception ex)
+					{
+						Console.WriteLine(ex.Message);
+					}
+
 				}
 				//Логика отправки, получения, запрос клиентов, запрос активных клиентов
 				else if (WorkStatusOK)
@@ -381,7 +394,8 @@ namespace Server.BLL
 			object LockObj = new object();
 			do
 			{
-				Task.Delay(delay);
+				//было Task.Delay(delay)
+				Task.Delay(delay).Wait();
 				lock (LockObj)
 				{
 					for (int i = 0; i < _clients.Count; i++)
