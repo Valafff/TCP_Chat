@@ -56,21 +56,24 @@ namespace Client.ViewModels
 		NetworkStream STREAM;
 		IPAddress SERVERIPADDRESS;
 		int SERVERPORT;
-		List<string> registredClients = new List<string>();
+
 
 		//UIClientModel _uiclient;
-  //      public UIClientModel UIClient 
+		//      public UIClientModel UIClient 
 		//{
 		//	get => _uiclient; 
 		//	set => SetField(ref _uiclient, value); 
 		//}
 
-        List<UIClientModel> _uiClients;
+		List<UIClientModel> _uiClients;
 		public List<UIClientModel> UICLients
 		{
 			get => _uiClients;
 			set => SetField(ref _uiClients, value);
 		}
+		//Вспомогательные поля для UICLients
+		List<string> registredClients = new List<string>();
+		List<string> ActiveClients;
 
 		string _title;
 		public string Title
@@ -108,7 +111,10 @@ namespace Client.ViewModels
 			Title = "МиниЧат";
 			BLLClient = new BLLClientModel();
 			UICLients = new List<UIClientModel>();
+			ActiveClients = new List<string>();
 			SendRegOrAuthClient += RegistrationOrAuthtorize;
+
+
 
 			RegistrMe = new Lambda(
 				execute: _ =>
@@ -193,14 +199,13 @@ namespace Client.ViewModels
 								registredClients = ReadRegisterUsers(serverAnswer);
 								foreach (var item in registredClients)
 								{
-									UIClientModel model = new UIClientModel() { Login = item};
-									UICLients.Add(model);
+									UICLients.Add(new UIClientModel() { Login = item });
 								}
-
 								if (CloseAuthWindowEvent != null)
 								{
 									CloseAuthWindowEvent();
 								}
+								GiveMeActiveClients(stream);
 							}
 							//Выполняется если сервер принимает подключение и стоит флаг автоматического входа
 							else if (serverAnswer == AnswerHelloUser && UserConfigData.AutoAuthtorization)
@@ -217,16 +222,27 @@ namespace Client.ViewModels
 								AuthtorizationMode = true;
 							}
 							//Если регистрация прошла успешно
-							else if (serverAnswer == AnswerRegisterOk)
+							else if (serverAnswer.Contains(AnswerRegisterOk))
 							{
 								if (AutoAuthtorization) UserConfigData.Login = BLLClient.Login;
 								if (AutoAuthtorization) UserConfigData.Password = BLLClient.Password;
 								UserConfigData.FirstName = BLLClient.FirstName;
 								UserConfigData.SecondName = BLLClient.SecondName;
 								UserConfigData.AutoAuthtorization = AutoAuthtorization;
+
 								ConfigWriteReadJson.ReWriteConfig(UserConfigData, "UserConfig.json");
 								MessageBox.Show("Регистрация прошла успешно!");
-								CloseRegistrationWindowEvent();
+								WorkMode = true;
+								registredClients = ReadRegisterUsers(serverAnswer);
+								foreach (var item in registredClients)
+								{
+									UICLients.Add(new UIClientModel() { Login = item });
+								}
+								if (CloseRegistrationWindowEvent != null)
+								{
+									CloseRegistrationWindowEvent();
+								}
+								GiveMeActiveClients(stream);
 							}
 							else if (serverAnswer == AnswerRegisterFailed)
 							{
@@ -240,8 +256,42 @@ namespace Client.ViewModels
 						}
 						else if (WorkMode)
 						{
+							BLLMessageModel IncomeMessage = new BLLMessageModel();
+							string command = "NoCommand";
+							try
+							{
+								Services.AccountService service = new Services.AccountService();
+								IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command);
+							}
+							catch (Exception ex)
+							{
+								Console.WriteLine(ex.Message);
+								Console.WriteLine("Ошибка при чтении сообщения: некорректная десериализация сообщения");
+								AuthtorizationMode = false;
+								WorkMode = false;
+							}
 
 
+							if (command == AnswerCatchActiveUsers)
+							{
+								if (IncomeMessage.MessageText != null)
+								{
+									ActiveClients = JsonSerializer.Deserialize<List<string>>(IncomeMessage.MessageText);
+								}
+								foreach (var item in UICLients)
+								{
+									if (ActiveClients.Contains(item.Login))
+									{
+										item.IsActive = true;
+										item.BackColor = "LawnGreen";
+									}
+									else
+									{
+										item.IsActive = false;
+										item.BackColor = "White";
+									}
+								}
+							}
 
 
 
@@ -266,10 +316,6 @@ namespace Client.ViewModels
 				//MessageBox.Show(ex.Message);
 				Console.WriteLine(ex);
 			}
-
-
-
-
 		}
 
 
@@ -308,6 +354,13 @@ namespace Client.ViewModels
 				//Console.WriteLine(ex);
 				return null;
 			}
+		}
+
+		void GiveMeActiveClients(Stream stream)
+		{
+			byte[] outputArray = Services.CourierServices.Packer(CommandGetMeActiveUsers);
+			stream.Write(outputArray);
+			stream.Flush();
 		}
 
 

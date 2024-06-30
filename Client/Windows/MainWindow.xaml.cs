@@ -56,9 +56,9 @@ namespace Client
 			main.TCPClientWork(IPAddress.Parse(chat.ServerIP), chat.ServerPort);
 			Task.Run(new Action(() => main.NetworkStreamReader()));
 			
-			DataContext = main;
-			InitializeComponent();
 
+			InitializeComponent();
+			DataContext = main;
 			bool firstAuthtorize = false;
 			if (user.FirstName == null || user.SecondName == null)
 			{
@@ -91,5 +91,10 @@ namespace Client
 			AuthtorizeWindow window = new AuthtorizeWindow(main);
 			window.ShowDialog();
 		}
+
+		private void Button_Client_Click(object sender, RoutedEventArgs e)
+		{
+            Console.WriteLine($"Выбран клиент {((Button)sender).Content}");
+        }
 	}
 }

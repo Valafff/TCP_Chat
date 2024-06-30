@@ -94,15 +94,15 @@ namespace Server.BLL
 
 			bool AuthtorizationMode = false;
 			bool WorkMode = false;
-            while (true)
+			while (true)
 			{
-				string inputcommand="";
+				string inputcommand = "";
 				byte[] workLeveldata = null;
 				//Расшифровка сообщений до авторизации
-				if (!WorkMode )
+				if (!WorkMode)
 				{
-					inputcommand =  ByteToString.GetStringFromStream(stream);
-					
+					inputcommand = ByteToString.GetStringFromStream(stream);
+
 				}
 				//Расшифровка сообщений после авторизации
 				else
@@ -158,7 +158,7 @@ namespace Server.BLL
 					//Запрос на отправку зарегистрированнх клиентов с текущим клиентом
 					if (command == CommandGetMeUsers)
 					{
-						PushRegistredClients();
+						UpdateRegisterClients();
 					}
 
 					//Запрос на отправку непрочитанных сообщений 
@@ -197,12 +197,16 @@ namespace Server.BLL
 
 						if (registrationStatus)
 						{
+							RegistredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
 							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = newClient.Login });
-			
-							byte[] buffer = Encoding.UTF8.GetBytes(AnswerRegisterOk);
+
+							Content content = new Content() { ServiceText = AnswerRegisterOk, Entity = JsonSerializer.SerializeToUtf8Bytes(RegistredClients.Values) };
+							byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(content);
+
+							//byte[] buffer = Encoding.UTF8.GetBytes(AnswerRegisterOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-	
+
 							WorkMode = true;
 							await Console.Out.WriteLineAsync($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -219,15 +223,17 @@ namespace Server.BLL
 					{
 						KeyValuePair<string, string> AuthorizeUser = JsonSerializer.Deserialize<KeyValuePair<string, string>>(Encoding.UTF8.GetString(AccountWorks.Entity));
 						bool authorizeStatus = service.Authorize(AuthorizeUser.Key, AuthorizeUser.Value);
+						if (ActiveClients.Any(c => c.Login == AuthorizeUser.Key)) authorizeStatus = false;
+
 						if (authorizeStatus)
 						{
+							RegistredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
+							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = AuthorizeUser.Key });
 							Content content = new Content() { ServiceText = AnswerAuthorizationOk, Entity = JsonSerializer.SerializeToUtf8Bytes(RegistredClients.Values) };
 							byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(content);
-
 							//byte[] buffer = Encoding.UTF8.GetBytes(AnswerAuthorizationOk);
 							await stream.WriteAsync(buffer, 0, buffer.Length);
 							await stream.FlushAsync();
-							ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = AuthorizeUser.Key });
 							WorkMode = true;
 							await Console.Out.WriteLineAsync($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 							await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
@@ -278,53 +284,49 @@ namespace Server.BLL
 				}
 			}
 
-			//Протестировать!
-			//Для текущего подключения
 			async void PushActiveClients()
 			{
 				try
 				{
-					List<ActiveClientLogin> OutherActiveClients = new List<ActiveClientLogin>();
+					Courier courier = new Courier();
+					List<string> OutherActiveClients = new List<string>();
 					foreach (var item in ActiveClients)
 					{
-						if (item.ActiveClient != tcpClient)
-						{
-							OutherActiveClients.Add(item);
-						}
+						OutherActiveClients.Add(item.Login);
 					}
-					Content content = new Content();
-					content.ServiceText = AnswerCatchActiveUsers;
-					content.Entity = JsonSerializer.SerializeToUtf8Bytes(OutherActiveClients);
-					var meassage = JsonSerializer.SerializeToUtf8Bytes(content);
-					await stream.WriteAsync(meassage, 0, meassage.Length);
+					string meassage = JsonSerializer.Serialize(OutherActiveClients);
+					courier.Header = AnswerCatchActiveUsers;
+					courier.MessageText = meassage;
+					byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+					//byte[] buffer = CourierServices.Packer(output);
+					await stream.WriteAsync(buffer, 0, buffer.Length);
 					await stream.FlushAsync();
 				}
 				catch (Exception ex)
 				{
-
-                    await Console.Out.WriteLineAsync(ex.Message);
-                    await Console.Out.WriteLineAsync("Ошибка PushActiveClients");
-                }
+					await Console.Out.WriteLineAsync(ex.Message);
+					await Console.Out.WriteLineAsync("Ошибка PushActiveClients");
+				}
 
 			}
 
 			//Протестировать!
 			//Для текущего подключения
-			async void PushRegistredClients()
+			async void UpdateRegisterClients()
 			{
 				try
 				{
-				List<string> RegisteredClients = new List<string>();
-				foreach (var item in RegistredClients)
-				{
-					RegisteredClients.Add(item.Value);
-				}
-				Content content = new Content();
-				content.ServiceText = AnswerCatchUsers;
-				content.Entity = JsonSerializer.SerializeToUtf8Bytes(RegisteredClients);
-				var meassage = JsonSerializer.SerializeToUtf8Bytes(content);
-				await stream.WriteAsync(meassage, 0, meassage.Length);
-				await stream.FlushAsync();
+					List<string> RegisteredClients = new List<string>();
+					foreach (var item in RegistredClients)
+					{
+						RegisteredClients.Add(item.Value);
+					}
+					Content content = new Content();
+					content.ServiceText = AnswerCatchUsers;
+					content.Entity = JsonSerializer.SerializeToUtf8Bytes(RegisteredClients);
+					var meassage = JsonSerializer.SerializeToUtf8Bytes(content);
+					await stream.WriteAsync(meassage, 0, meassage.Length);
+					await stream.FlushAsync();
 				}
 				catch (Exception ex)
 				{
@@ -374,11 +376,11 @@ namespace Server.BLL
 				{
 					string targetClientLogin = _incomeMessage.UserSender.Login;
 					ActiveClientLogin nashClient = ActiveClients.First(l => l.Login == targetClientLogin);
-					
+
 					//Работа под большим вопросом
 					NetworkStream tempstream = nashClient.ActiveClient.GetStream();
 
-				    byte[] outputArray = CourierServices.Packer(_incomeMessage.UserSender.Login, _incomeMessage.UserReciver.Login, CommandTakeMessage, _incomeMessage.MessageText, _incomeMessage.MessageContentNames);
+					byte[] outputArray = CourierServices.Packer(_incomeMessage.UserSender.Login, _incomeMessage.UserReciver.Login, CommandTakeMessage, _incomeMessage.MessageText, _incomeMessage.MessageContentNames);
 					await stream.WriteAsync(outputArray, 0, outputArray.Length);
 					await stream.FlushAsync();
 

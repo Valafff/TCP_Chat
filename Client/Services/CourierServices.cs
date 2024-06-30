@@ -42,6 +42,15 @@ namespace Client.Services
 			return JsonSerializer.SerializeToUtf8Bytes(courier);
 		}
 
+
+		static public byte[] Packer(string _command)
+		{
+			Courier courier = new Courier();
+			courier.Header = _command;
+			return JsonSerializer.SerializeToUtf8Bytes(courier);
+		}
+
+
 		//Распаковщик сообщения. На входе объект для распаковки, на выходе модель BLL с путями, записанные в директорию с клиентом контент если есть, команда 
 		static public BLLMessageModel Unpacker(byte[] courierByteArr, out string _command)
 		{
@@ -51,20 +60,24 @@ namespace Client.Services
 			Courier courier = JsonSerializer.Deserialize<Courier>(courierByteArr);
 
 			//Пишем пришедшие файлы в директорию с именем клиента ФАЙЛЫ С ОДИНАКОВЫМ НАЗВАНИЕМ ПЕРЕЗАПИСЫВАЮТСЯ!
-			foreach (var item in courier.Attachment.FileNameEntity)
-			{
-				messageBLL.MessageContentNames.Add(item.Key);
-				using (FileStream fs = new FileStream($"\\Clients\\{courier.ReciverLogin}\\{item.Key}", FileMode.Create))
-				{
-					fs.Write(item.Value, 0, item.Value.Length);
-				}
-			}
 			_command = courier.Header;
-			messageBLL.UserSender.Login = courier.SenderLogin;
-			messageBLL.UserReciver.Login = courier.ReciverLogin;
-			messageBLL.MessageText = courier.MessageText;
-
-			return messageBLL;
+			if (courier.MessageText != null)  messageBLL.MessageText = courier.MessageText;
+			
+			if (courier.Attachment != null)
+			{
+				messageBLL.UserSender.Login = courier.SenderLogin;
+				messageBLL.UserReciver.Login = courier.ReciverLogin;				
+				foreach (var item in courier.Attachment.FileNameEntity)
+				{
+					messageBLL.MessageContentNames.Add(item.Key);
+					using (FileStream fs = new FileStream($"\\Clients\\{courier.ReciverLogin}\\{item.Key}", FileMode.Create))
+					{
+						fs.Write(item.Value, 0, item.Value.Length);
+					}
+				}
+				return messageBLL;
+			}
+			else return messageBLL;
 		}
 	}
 }

@@ -29,29 +29,22 @@
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
 
-            <!--<StackPanel Grid.Row="0" DataContext="{Binding Path=UICLients}">
-                <StackPanel Orientation="Horizontal" >
-                    <TextBlock Text="{Binding Path=}"
-                </StackPanel>
-            </StackPanel>-->
-
-            <ItemsControl x:Name="ClientsStack" ItemsSource="{Binding Path=UICLients}">
-                <ItemsControl.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <StackPanel Orientation="Horizontal"/>
-                    </ItemsPanelTemplate>
-                </ItemsControl.ItemsPanel>
-                <ItemsControl.ItemTemplate>
-                    <DataTemplate>
-                        <TextBlock Text="{Binding Path=Login}" Margin="5"/>
-                    </DataTemplate>
-                </ItemsControl.ItemTemplate>
-            </ItemsControl>
+            <ScrollViewer>
+                <ItemsControl x:Name="ClientsStack" ItemsSource="{Binding Path=UICLients, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}">
+                    <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                            <StackPanel Orientation="Vertical"/>
+                        </ItemsPanelTemplate>
+                    </ItemsControl.ItemsPanel>
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate>
+                            <Button Content="{Binding Path=Login, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Margin="1" Background="{Binding BackColor}"  BorderBrush="{Binding BackColor}" HorizontalContentAlignment="Left"  Click="Button_Client_Click"/>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
 
 
         </Grid>
-
-
-
     </DockPanel>
 </Window>
