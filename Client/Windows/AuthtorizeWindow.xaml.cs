@@ -13,44 +13,43 @@ using System.Windows.Input;
 using System.Windows.Media;
 using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
-using System.Reflection;
-using System.CodeDom;
 
 namespace Client.Windows
 {
-	public partial class RegistrationWindow : Window
+	/// <summary>
+	/// Interaction logic for AuthtorizeWindow.xaml
+	/// </summary>
+	public partial class AuthtorizeWindow : Window
 	{
 		MainMenu mainMenu;
-		public RegistrationWindow(MainMenu mainmenu)
+		public AuthtorizeWindow(MainMenu _main )
 		{
 			InitializeComponent();
-			this.mainMenu = mainmenu;
+			this.mainMenu = _main;
 			DataContext = this.mainMenu;
-			mainMenu.CloseRegistrationWindowEvent += CloseMe;
+			mainMenu.CloseAuthWindowEvent += CloseMe;
 		}
 
-		private void Bt_Registration_Click(object sender, RoutedEventArgs e)
+		private void Bt_Authtorize_Click(object sender, RoutedEventArgs e)
 		{
 			if (TbUserLogin.Text == "")
 			{
 				MessageBox.Show("Введите логин!");
 			}
-			if (TbUserPassword.Password == "")
+			else if (TbUserPassword.Password == "")
 			{
-                MessageBox.Show("Введите пароль!");
+				MessageBox.Show("Введите пароль!");
 			}
 			else
 			{
 				(DataContext as MainMenu).BLLClient.Password = TbUserPassword.Password;
-				Lambda registr = mainMenu.RegistrMe;
-				registr.Execute(this);
+				Lambda Auth = mainMenu.Authtorizeme;
+				Auth.Execute(this);
 			}
-
 		}
 		void CloseMe()
 		{
 			Application.Current.Dispatcher.Invoke(() => { this.Close(); });
 		}
-
 	}
 }

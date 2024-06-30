@@ -58,6 +58,7 @@ namespace Server.Tools
 
 		//}
 
+		////НАЧАЛО Эксперимент с чтением через bytereader Сначала передается 4 байта - длина массива с данными, затем идет чтение согласно известной длине данных 
 		//public static string GetStringFromStream(NetworkStream stream, int buffersize = 1024)
 		//{
 		//	try
@@ -85,6 +86,21 @@ namespace Server.Tools
 		//	}
 
 		//}
+
+
+		//Код на стороне клиента
+		//int messageSize = data.Length;
+
+		////MessageBox.Show($"{messageSize}"); //8
+
+		//byte[] header = new byte[HeaderBytes];
+		//byte[] arrLenght =	JsonSerializer.SerializeToUtf8Bytes(messageSize);
+		//arrLenght.CopyTo(header, 0);
+		//byte[] resultArray = new byte[HeaderBytes+messageSize];
+		//header.CopyTo(resultArray, 0);
+		//data.CopyTo(resultArray, 4);
+		//stream.Write(resultArray);
+		////КОНЕЦ Эксперимент с чтением через bytereader Сначала передается 4 байта - длина массива с данными, затем идет чтение согласно известной длине данных 
 
 	}
 }

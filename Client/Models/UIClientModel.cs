@@ -13,5 +13,6 @@ namespace Client.Models
 		public string Login { get; set; }
 		public int Status { get; set; }
 		public DateTime LastVisit { get; set; }
-	}
+        public string ResultString { get; set; }
+    }
 }

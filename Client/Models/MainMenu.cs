@@ -1,8 +1,12 @@
 ﻿using Client.Models;
+using Client.Tools;
+using ConfigSerializeDeserialize;
+using Microsoft.Xaml.Behaviors_Test;
 using System;
 using System.Collections.Generic;
 using System.Collections.Specialized;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Net;
 using System.Net.Sockets;
@@ -15,9 +19,14 @@ using System.Windows;
 
 namespace Client.ViewModels
 {
+	public delegate void VoidEvent();
+	public delegate void SendContentToStream(byte[] content);
 	public class MainMenu : INotifyCollectionChanged
 	{
-		const int HeaderBytes = 4;
+		public event SendContentToStream SendRegOrAuthClient;
+		public event VoidEvent CloseRegistrationWindowEvent;
+		public event VoidEvent CloseAuthWindowEvent;
+
 		//Система команд
 		const string CommandHelloMsr = "HelloMsr";
 		const string AnswerHelloUser = "HelloClientGoStep2";
@@ -39,41 +48,121 @@ namespace Client.ViewModels
 		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
 		const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
 
-		TcpClient tcpClient = new	TcpClient();
+		bool AuthtorizationMode = false;
+		bool WorkMode = false;
+		const int delay = 10;
+		const int buffersize = 1024;
+		TcpClient tcpClient = new TcpClient();
+		NetworkStream STREAM;
+		IPAddress SERVERIPADDRESS;
+		int SERVERPORT;
+		List<string> registredClients = new List<string>();
 
-		public  void TCPClientWork(IPAddress _serverIP, int _serverPort )
+		//UIClientModel _uiclient;
+  //      public UIClientModel UIClient 
+		//{
+		//	get => _uiclient; 
+		//	set => SetField(ref _uiclient, value); 
+		//}
+
+        List<UIClientModel> _uiClients;
+		public List<UIClientModel> UICLients
+		{
+			get => _uiClients;
+			set => SetField(ref _uiClients, value);
+		}
+
+		string _title;
+		public string Title
+		{
+			get => _title;
+			set => SetField(ref _title, value);
+		}
+
+		UserConfig _userConfig;
+		public UserConfig UserConfigData
+		{
+			get => _userConfig;
+			set => SetField(ref _userConfig, value);
+		}
+
+		BLLClientModel _bllClientModel;
+		public BLLClientModel BLLClient
+		{
+			get => _bllClientModel;
+			set => SetField(ref _bllClientModel, value);
+		}
+
+		bool _autoInput;
+		public bool AutoAuthtorization
+		{
+			get => _autoInput;
+			set => SetField(ref _autoInput, value);
+		}
+
+		public Lambda RegistrMe { get; set; }
+		public Lambda Authtorizeme { get; set; }
+
+		public MainMenu()
+		{
+			Title = "МиниЧат";
+			BLLClient = new BLLClientModel();
+			UICLients = new List<UIClientModel>();
+			SendRegOrAuthClient += RegistrationOrAuthtorize;
+
+			RegistrMe = new Lambda(
+				execute: _ =>
+				{
+					BLLClient.Status = 1;
+					BLLClient.LastVisit = DateTime.Now;
+					var clientByteArr = JsonSerializer.SerializeToUtf8Bytes(BLLClient);
+					Content content = new Content() { ServiceText = CommandRegisterMe, Entity = clientByteArr };
+					var contentByteArr = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(content));
+					SendRegOrAuthClient(contentByteArr);
+				},
+				canExecute => AuthtorizationMode == true
+				);
+			Authtorizeme = new Lambda(
+				execute: _ =>
+				{
+					KeyValuePair<string, string> AuthorizeUser = new KeyValuePair<string, string>(key: BLLClient.Login, value: BLLClient.Password);
+					Content content = new Content() { ServiceText = CommandAuthorizeMe, Entity = JsonSerializer.SerializeToUtf8Bytes(AuthorizeUser) };
+					var contentByteArr = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(content));
+					SendRegOrAuthClient(contentByteArr);
+				},
+				canExecute => AuthtorizationMode == true
+				);
+		}
+
+
+
+
+
+		public void TCPClientWork(IPAddress _serverIP, int _serverPort)
 		{
 			try
 			{
-				 tcpClient.Connect(_serverIP, _serverPort);
+				SERVERIPADDRESS = _serverIP;
+				SERVERPORT = _serverPort;
+				tcpClient.Connect(_serverIP, _serverPort);
 				NetworkStream stream = tcpClient.GetStream();
+				STREAM = stream;
 				//Контрольное сообщение серверу
 				byte[] data = Encoding.UTF8.GetBytes(CommandHelloMsr);
-
-
-				//int messageSize = data.Length;
-
-				////MessageBox.Show($"{messageSize}"); //8
-
-				//byte[] header = new byte[HeaderBytes];
-				//byte[] arrLenght =	JsonSerializer.SerializeToUtf8Bytes(messageSize);
-				//arrLenght.CopyTo(header, 0);
-				//byte[] resultArray = new byte[HeaderBytes+messageSize];
-				//header.CopyTo(resultArray, 0);
-				//data.CopyTo(resultArray, 4);
-				//stream.Write(resultArray);
-
 				stream.Write(data);
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show( ex.Message );
+				MessageBox.Show($"Ошибка подключения к серверу. {ex.Message}");
 			}
 
 		}
 
+		//Чтение данных отправленных сервером и Логика работы клиента
 		public void NetworkStreamReader()
 		{
+			string serverAnswer = "";
+			byte[] workLeveldata = null;
 			try
 			{
 				using NetworkStream stream = tcpClient.GetStream();
@@ -81,50 +170,145 @@ namespace Client.ViewModels
 				{
 					try
 					{
-						List<byte[]> request = new List<byte[]>();
-						int temp;
-						byte[] buffer = new byte[1024];
-
-						while ((temp = stream.Read(buffer, 0, buffer.Length)) > 0)
+						//Расшифровка сообщений до авторизации
+						if (!WorkMode)
 						{
-							byte[] data = new byte[temp];
-							data = buffer[0..temp];
-							request.Add(data);
-							if (temp < 1024) { break; }
+							serverAnswer = ByteToString.GetStringFromStream(stream);
+						}
+						//Расшифровка сообщений после авторизации
+						else
+						{
+							workLeveldata = StreamToByte.StreamToByteArr(stream);
 						}
 
-
-
-						//Модифицировать блок
-						StringBuilder command = new StringBuilder();
-						foreach (byte[] data in request)
+						if (!WorkMode)
 						{
-							command.Append(Encoding.UTF8.GetString(data));
-						}
-						MessageBox.Show(command.ToString());
+							//Контрольное прослушивание сообщений сервера
+							Console.WriteLine(serverAnswer);
 
+							//запрос всех зарегистрированных пользователей
+							if (serverAnswer.Contains(AnswerAuthorizationOk))
+							{
+								WorkMode = true;
+								registredClients = ReadRegisterUsers(serverAnswer);
+								foreach (var item in registredClients)
+								{
+									UIClientModel model = new UIClientModel() { Login = item};
+									UICLients.Add(model);
+								}
+
+								if (CloseAuthWindowEvent != null)
+								{
+									CloseAuthWindowEvent();
+								}
+							}
+							//Выполняется если сервер принимает подключение и стоит флаг автоматического входа
+							else if (serverAnswer == AnswerHelloUser && UserConfigData.AutoAuthtorization)
+							{
+								BLLClient.Login = UserConfigData.Login;
+								BLLClient.Password = UserConfigData.Password;
+								Lambda Auth = Authtorizeme;
+								Auth.Execute(this);
+							}
+							//Если сервер принимает подключение
+							else if (serverAnswer == AnswerHelloUser)
+							{
+								//Клиент может регистрироваться, авторизоваться, удалить аккаунт
+								AuthtorizationMode = true;
+							}
+							//Если регистрация прошла успешно
+							else if (serverAnswer == AnswerRegisterOk)
+							{
+								if (AutoAuthtorization) UserConfigData.Login = BLLClient.Login;
+								if (AutoAuthtorization) UserConfigData.Password = BLLClient.Password;
+								UserConfigData.FirstName = BLLClient.FirstName;
+								UserConfigData.SecondName = BLLClient.SecondName;
+								UserConfigData.AutoAuthtorization = AutoAuthtorization;
+								ConfigWriteReadJson.ReWriteConfig(UserConfigData, "UserConfig.json");
+								MessageBox.Show("Регистрация прошла успешно!");
+								CloseRegistrationWindowEvent();
+							}
+							else if (serverAnswer == AnswerRegisterFailed)
+							{
+								MessageBox.Show("Отказ в регистрации. Логин занят или введены некорректные символы");
+							}
+							else if (serverAnswer == AnswerAuthorizationFailed)
+							{
+								MessageBox.Show("Ошибка авторизации");
+							}
+							//Не обработано событие удаления клиента
+						}
+						else if (WorkMode)
+						{
+
+
+
+
+
+
+
+
+
+							Console.ReadKey();
+						}
 
 
 					}
 					catch (Exception ex)
 					{
-						MessageBox.Show(ex.Message);
+						//MessageBox.Show(ex.Message);
 						break;
 					}
 				}
 			}
 			catch (Exception ex)
 			{
-				MessageBox.Show(ex.Message);
+				//MessageBox.Show(ex.Message);
+				Console.WriteLine(ex);
 			}
+
+
+
+
 		}
 
 
+		void RegistrationOrAuthtorize(byte[] content)
+		{
+			try
+			{
+				STREAM.WriteAsync(content);
+				STREAM.Flush();
+			}
+			catch (Exception ex)
+			{
+				MessageBox.Show($"Ошибка регистрации {ex.Message}");
+				CloseRegistrationWindowEvent();
+			}
+		}
+		public void ReloadConnection()
+		{
+			tcpClient.Close();
+			tcpClient = new TcpClient();
+			TCPClientWork(SERVERIPADDRESS, SERVERPORT);
+			Task.Run(new Action(() => NetworkStreamReader()));
+		}
 
-
-
-
-
+		List<string> ReadRegisterUsers(string _inputString)
+		{
+			try
+			{
+				Content content = JsonSerializer.Deserialize<Content>(_inputString);
+				List<string> reg = new List<string>();
+				reg = JsonSerializer.Deserialize<List<string>>(content.Entity);
+				return reg;
+			}
+			catch (Exception ex)
+			{
+				//Console.WriteLine(ex);
+				return null;
+			}
+		}
 
 
 

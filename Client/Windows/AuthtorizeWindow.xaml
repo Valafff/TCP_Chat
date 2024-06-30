@@ -1,0 +1,30 @@
+﻿<Window x:Class="Client.Windows.AuthtorizeWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wm ="clr-namespace:Client.ViewModels"
+        mc:Ignorable="d"
+        Title="Окно авторизации" Height="200" Width="300"
+        WindowStartupLocation="CenterScreen">
+
+    <Window.DataContext>
+        <wm:MainMenu/>
+    </Window.DataContext>
+
+
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+            <RowDefinition/>
+        </Grid.RowDefinitions>
+        <TextBlock Grid.Row="0" Text="Введите логин" VerticalAlignment="Center"  Margin="5"/>
+        <TextBox Grid.Row="1" x:Name="TbUserLogin" Margin="5" Text="{Binding Path=BLLClient.Login, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}"/>
+        <TextBlock Grid.Row="2" Text="Введите пароль" VerticalAlignment="Center" Margin="5" />
+        <PasswordBox Grid.Row="3" x:Name="TbUserPassword" Margin="5"/>
+        <Button Grid.Row="9" Content="Подключиться" x:Name="Bt_Authtorize" Margin="50,5,50,5" Click="Bt_Authtorize_Click"/>
+    </Grid>
+</Window>

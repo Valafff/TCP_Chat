@@ -11,7 +11,7 @@ namespace Server.Tools
 		public static byte[] StreamToByteArr(Stream stream, int buffersize = 1024)
 		{
 			List<byte[]> bytesArrays = new List<byte[]>();
-			int size;
+			int size = buffersize;
 			byte[] buffer = new byte[buffersize];
 			while ((size = stream.Read(buffer, 0, buffer.Length)) > 0)
 			{

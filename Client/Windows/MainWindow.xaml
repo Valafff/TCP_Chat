@@ -5,7 +5,7 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:wm ="clr-namespace:Client.ViewModels"
         mc:Ignorable="d"
-        Title="МиниЧат" Height="450" Width="400"
+        Title="{Binding Title, UpdateSourceTrigger=PropertyChanged}" Height="450" Width="400"
         WindowStartupLocation="CenterScreen">
 
     <Window.DataContext>
@@ -14,15 +14,44 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Работа с чатом">
-                <MenuItem Header="Регистрация"/>
-                <MenuItem Header="Авторизация"/>
-                <MenuItem Header="Выход"/>
+                <MenuItem Header="Новая регистрация" Click="MenuItem_Click_ReloadConnection"/>
+                <MenuItem Header="Авторизация" Click="MenuItem_Click_Authtorize"/>
+                <MenuItem Header="Выход" Click="MenuItem_Click_CloseChat"/>
             </MenuItem>
-            <MenuItem Header="Настройки"/>
+            <MenuItem Header="Настройки">
+                <MenuItem Header ="Настройки подключения"/>
+                <MenuItem Header="Настройки клиента"/>
+            </MenuItem>
         </Menu>
-        
-        
-        
-        
+        <Grid>
+            <Grid.RowDefinitions>
+                <RowDefinition Height="5*"/>
+                <RowDefinition Height="1*"/>
+            </Grid.RowDefinitions>
+
+            <!--<StackPanel Grid.Row="0" DataContext="{Binding Path=UICLients}">
+                <StackPanel Orientation="Horizontal" >
+                    <TextBlock Text="{Binding Path=}"
+                </StackPanel>
+            </StackPanel>-->
+
+            <ItemsControl x:Name="ClientsStack" ItemsSource="{Binding Path=UICLients}">
+                <ItemsControl.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <StackPanel Orientation="Horizontal"/>
+                    </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                        <TextBlock Text="{Binding Path=Login}" Margin="5"/>
+                    </DataTemplate>
+                </ItemsControl.ItemTemplate>
+            </ItemsControl>
+
+
+        </Grid>
+
+
+
     </DockPanel>
 </Window>

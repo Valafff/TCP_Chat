@@ -19,6 +19,8 @@ namespace Client
 
 	public partial class MainWindow : Window
 	{
+
+		MainMenu main = new MainMenu();
 		UserConfig user =  new UserConfig();
 		ChatConfig chat = new ChatConfig();
 
@@ -27,21 +29,29 @@ namespace Client
 			try
 			{
 				user = ConfigWriteReadJson.ReadConfig<UserConfig>("UserConfig.json");
-				chat = ConfigWriteReadJson.ReadConfig<ChatConfig>("Options.json");
 			}
 			catch (Exception)
 			{
 				ConfigWriteReadJson.ReWriteConfig(user, "UserConfig.json");
+			}
+			try
+			{
+				chat = ConfigWriteReadJson.ReadConfig<ChatConfig>("Options.json");
+			}
+			catch (Exception)
+			{
 				ConfigWriteReadJson.ReWriteConfig(chat, "Options.json");
 			}
+
 
 			if (chat.ServerIP == null || chat.ServerPort == 0 )
 			{
 				OptionsWindow options = new OptionsWindow();
 				options.ShowDialog();
+				chat = ConfigWriteReadJson.ReadConfig<ChatConfig>("Options.json");
 			}
 
-			MainMenu main = new MainMenu();
+			main.UserConfigData = user;
 
 			main.TCPClientWork(IPAddress.Parse(chat.ServerIP), chat.ServerPort);
 			Task.Run(new Action(() => main.NetworkStreamReader()));
@@ -49,15 +59,37 @@ namespace Client
 			DataContext = main;
 			InitializeComponent();
 
-			if (user.Login == null)
+			bool firstAuthtorize = false;
+			if (user.FirstName == null || user.SecondName == null)
 			{
-				RegistrationWindow reqAuth = new RegistrationWindow();
-				reqAuth.ShowDialog();
+				firstAuthtorize = true;
+				RegistrationWindow window = new RegistrationWindow(main);
+				window.ShowDialog();
+			}
+
+			if(!user.AutoAuthtorization && !firstAuthtorize)
+			{
+				AuthtorizeWindow window = new AuthtorizeWindow(main);
+				window.ShowDialog();
 			}
 
 
 		}
 
+		private void MenuItem_Click_CloseChat(object sender, RoutedEventArgs e)
+		{
+			Close();
+		}
 
+		private void MenuItem_Click_ReloadConnection(object sender, RoutedEventArgs e)
+		{
+			main.ReloadConnection();
+		}
+
+		private void MenuItem_Click_Authtorize(object sender, RoutedEventArgs e)
+		{
+			AuthtorizeWindow window = new AuthtorizeWindow(main);
+			window.ShowDialog();
+		}
 	}
 }
