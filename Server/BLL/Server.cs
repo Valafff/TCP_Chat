@@ -372,26 +372,26 @@ namespace Server.BLL
 			{
 				MessageService service = new MessageService();
 				service.InsertMessage(_incomeMessage, RegistredClients);
-				try
-				{
-					string targetClientLogin = _incomeMessage.UserSender.Login;
-					ActiveClientLogin nashClient = ActiveClients.First(l => l.Login == targetClientLogin);
+				//try
+				//{
+				//	string targetClientLogin = _incomeMessage.UserSender.Login;
+				//	ActiveClientLogin nashClient = ActiveClients.First(l => l.Login == targetClientLogin);
 
-					//Работа под большим вопросом
-					NetworkStream tempstream = nashClient.ActiveClient.GetStream();
+				//	//Работа под большим вопросом
+				//	NetworkStream tempstream = nashClient.ActiveClient.GetStream();
 
-					byte[] outputArray = CourierServices.Packer(_incomeMessage.UserSender.Login, _incomeMessage.UserReciver.Login, CommandTakeMessage, _incomeMessage.MessageText, _incomeMessage.MessageContentNames);
-					await stream.WriteAsync(outputArray, 0, outputArray.Length);
-					await stream.FlushAsync();
+				//	byte[] outputArray = CourierServices.Packer(_incomeMessage.UserSender.Login, _incomeMessage.UserReciver.Login, CommandTakeMessage, _incomeMessage.MessageText, _incomeMessage.MessageContentNames);
+				//	await stream.WriteAsync(outputArray, 0, outputArray.Length);
+				//	await stream.FlushAsync();
 
 
-					tempstream.Close();
-				}
-				catch (Exception ex)
-				{
-					Console.WriteLine(ex.Message);
-					Console.WriteLine("Ошибка отправки сообщения");
-				}
+				//	tempstream.Close();
+				//}
+				//catch (Exception ex)
+				//{
+				//	Console.WriteLine(ex.Message);
+				//	Console.WriteLine("Ошибка отправки сообщения");
+				//}
 			}
 		}
 

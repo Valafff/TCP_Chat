@@ -16,6 +16,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Media.TextFormatting;
 
 namespace Client.ViewModels
 {
@@ -65,6 +66,30 @@ namespace Client.ViewModels
 		//	set => SetField(ref _uiclient, value); 
 		//}
 
+
+		BLLMessageModel _outputMessage;
+		public BLLMessageModel OutputMessage
+		{
+			get => _outputMessage;
+			set => SetField(ref _outputMessage, value);
+		}
+
+		Dictionary<string, string> _loadingAttachments;
+		public Dictionary<string, string> LoadingAttachments_KeyNameValuePath
+		{
+			get => _loadingAttachments;
+			set => SetField(ref _loadingAttachments, value);
+		}
+
+		//Все сообщения прочитанные из папки clients
+		Dictionary<UIClientModel, List<string>> _allmessages;
+		public Dictionary<UIClientModel, List<string>> AllMessagesList
+		{
+			get => _allmessages;
+			set => SetField(ref _allmessages, value);
+		}
+
+		//Все зарегистрированные клиенты (отправляются сервером)
 		List<UIClientModel> _uiClients;
 		public List<UIClientModel> UICLients
 		{
@@ -82,6 +107,7 @@ namespace Client.ViewModels
 			set => SetField(ref _title, value);
 		}
 
+		//Даныне пользователя, хранящиеся в постоянной памяти
 		UserConfig _userConfig;
 		public UserConfig UserConfigData
 		{
@@ -89,6 +115,8 @@ namespace Client.ViewModels
 			set => SetField(ref _userConfig, value);
 		}
 
+
+		//Пользователь после авторизации
 		BLLClientModel _bllClientModel;
 		public BLLClientModel BLLClient
 		{
@@ -96,6 +124,7 @@ namespace Client.ViewModels
 			set => SetField(ref _bllClientModel, value);
 		}
 
+		//Флаг устанавливающийся при регистрации - если true -  пароль и логин пользователя записываются в конфиг. При запуске клиента авторизация происходит атоматически
 		bool _autoInput;
 		public bool AutoAuthtorization
 		{
@@ -105,12 +134,16 @@ namespace Client.ViewModels
 
 		public Lambda RegistrMe { get; set; }
 		public Lambda Authtorizeme { get; set; }
+		public Lambda PushMessage { get; set; }
 
 		public MainMenu()
 		{
 			Title = "МиниЧат";
 			BLLClient = new BLLClientModel();
 			UICLients = new List<UIClientModel>();
+			OutputMessage = new BLLMessageModel() { UserReciver = new BLLSlimClientModel(), UserSender = new BLLSlimClientModel(), MessageContentNames = new List<string>()};
+			AllMessagesList = new Dictionary<UIClientModel, List<string>>();
+			LoadingAttachments_KeyNameValuePath = new Dictionary<string, string>();
 			ActiveClients = new List<string>();
 			SendRegOrAuthClient += RegistrationOrAuthtorize;
 
@@ -138,9 +171,17 @@ namespace Client.ViewModels
 				},
 				canExecute => AuthtorizationMode == true
 				);
+
+			PushMessage = new Lambda(
+				execute: _ =>
+				{
+					AllMessagesList = ReadAllMessagesFromMemory(UICLients);
+					byte[] arr = Services.CourierServices.Packer(OutputMessage, CommandMessageTo);
+					SendMessageToServer(STREAM, arr);
+				},
+				canExecute => OutputMessage.UserReciver != null
+				);
 		}
-
-
 
 
 
@@ -212,8 +253,7 @@ namespace Client.ViewModels
 							{
 								BLLClient.Login = UserConfigData.Login;
 								BLLClient.Password = UserConfigData.Password;
-								Lambda Auth = Authtorizeme;
-								Auth.Execute(this);
+								Authtorizeme.Execute(this);
 							}
 							//Если сервер принимает подключение
 							else if (serverAnswer == AnswerHelloUser)
@@ -271,9 +311,10 @@ namespace Client.ViewModels
 								WorkMode = false;
 							}
 
-
 							if (command == AnswerCatchActiveUsers)
 							{
+								AllMessagesList = ReadAllMessagesFromMemory(UICLients);
+								ResultStringBuilder(UICLients);
 								if (IncomeMessage.MessageText != null)
 								{
 									ActiveClients = JsonSerializer.Deserialize<List<string>>(IncomeMessage.MessageText);
@@ -299,7 +340,7 @@ namespace Client.ViewModels
 
 
 
-							Console.ReadKey();
+							//Console.ReadKey();
 						}
 
 
@@ -332,6 +373,8 @@ namespace Client.ViewModels
 				CloseRegistrationWindowEvent();
 			}
 		}
+
+		//Работает не корректно исправить
 		public void ReloadConnection()
 		{
 			tcpClient.Close();
@@ -363,6 +406,73 @@ namespace Client.ViewModels
 			stream.Flush();
 		}
 
+		void SendMessageToServer(Stream stream, byte[] _arr)
+		{
+			stream.Write(_arr);
+			stream.Flush();
+		}
+
+
+		//Получение списка всех сообщений от всех клиентов
+		Dictionary<UIClientModel, List<string>> ReadAllMessagesFromMemory(List<UIClientModel> _clients)
+		{
+			Dictionary<UIClientModel, List<string>> dict = new Dictionary<UIClientModel, List<string>>();
+			if (!Directory.Exists(Directory.GetCurrentDirectory() + $"\\Clients\\"))
+			{
+				Directory.CreateDirectory(Directory.GetCurrentDirectory() + $"\\Clients\\");
+			}
+
+			DirectoryInfo ClientDirectory = new DirectoryInfo(Directory.GetCurrentDirectory() + $"\\Clients\\");
+			DirectoryInfo[] directories = ClientDirectory.GetDirectories();
+
+
+			foreach (var item in directories)
+			{
+				FileInfo ClientMessagesFile = new FileInfo(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt");
+
+					if (ClientMessagesFile.Exists)
+					{
+						var tempMessages = new List<string>();
+						using (StreamReader sr = new StreamReader(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt"))
+						{
+							while (!sr.EndOfStream)
+							{
+								tempMessages.Add(sr.ReadLine());
+							}
+						}
+						dict.Add(key: _clients.First(c => c.Login == item.Name), value: tempMessages);
+					}
+			}
+			return dict;
+		}
+
+		//_messagedata подгружаются из списка сообщений txt на диске 
+		void ResultStringBuilder(List<UIClientModel> _clients)
+		{
+			foreach (var item in _clients)
+			{
+				if (item.Login == BLLClient.Login)
+				{
+					item.ResultString = $"{item.Login} (Вы)";
+				}
+				else
+				{
+					int countMessages = 0;
+					if (AllMessagesList.ContainsKey(item))
+					{
+						countMessages = AllMessagesList[item].Count;
+					}
+					item.ResultString = $"{item.Login} Всего сообщений {countMessages} Был в сети {item.LastVisit}";
+				}
+			}
+		}
+
+		public void RefreshUsers(List<UIClientModel> _clients)
+		{
+			Dictionary<UIClientModel, List<string>> dict = ReadAllMessagesFromMemory(_clients);
+			ResultStringBuilder(_clients);
+
+		}
 
 
 

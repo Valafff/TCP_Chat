@@ -3,10 +3,49 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:wm ="clr-namespace:Client.ViewModels"
         xmlns:local="clr-namespace:Client.Windows"
         mc:Ignorable="d"
-        Title="ChatRoom" Height="450" Width="800">
+        Title="ChatRoom" Height="550" Width="550"
+        WindowStartupLocation="CenterScreen">
+    
+    <Window.DataContext>
+        <wm:MainMenu/>
+    </Window.DataContext>
+
     <Grid>
-        
+        <Grid.RowDefinitions>
+            <RowDefinition Height="3*"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="2*"/>
+            <RowDefinition Height="1*"/>
+        </Grid.RowDefinitions>
+        <GroupBox Grid.Row="0" Header="Переписка">
+            <ScrollViewer x:Name="scrollMessage" VerticalScrollBarVisibility="Auto"  HorizontalScrollBarVisibility="Auto">
+                <StackPanel x:Name="sp_Messeges" Margin="5"/>
+            </ScrollViewer>
+        </GroupBox>
+
+        <GroupBox Grid.Row="1" Header="Сообщение пользователю">
+            <ScrollViewer>
+              <TextBox Grid.Row="1" x:Name="TB_MessegeTo"  TextWrapping="Wrap"  Text="{Binding Path=OutputMessage.MessageText, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>   
+            </ScrollViewer>
+           
+        </GroupBox>
+
+        <GroupBox Grid.Row="2" Header="Файлы к отправке">
+            <ScrollViewer>
+                <StackPanel x:Name="sp_Attachments" Margin="5"/>
+            </ScrollViewer>
+
+        </GroupBox>
+        <Grid Grid.Row="3">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition/>
+                <ColumnDefinition/>
+            </Grid.ColumnDefinitions>
+            <Button Grid.Column="0" Content="Добавить файл" Height="30" Width="150" Click="Button_FileLoad_Click"/>
+            <Button Grid.Column="1" Content="Отпрвить сообщение" Height="30" Width="150" Click="Button_SendMessage_Click" />
+        </Grid>
     </Grid>
 </Window>

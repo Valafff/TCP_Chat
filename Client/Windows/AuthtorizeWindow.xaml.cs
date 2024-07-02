@@ -43,8 +43,7 @@ namespace Client.Windows
 			else
 			{
 				(DataContext as MainMenu).BLLClient.Password = TbUserPassword.Password;
-				Lambda Auth = mainMenu.Authtorizeme;
-				Auth.Execute(this);
+				mainMenu.Authtorizeme.Execute(mainMenu);
 			}
 		}
 		void CloseMe()

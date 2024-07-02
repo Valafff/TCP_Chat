@@ -12,7 +12,10 @@ namespace Server.BLL.Models
 		public string SenderLogin { get; set; }
 		public string ReciverLogin { get; set; }
         public string MessageText { get; set; }
-        public Content Attachment { get; set; }
+        public DateTime Date { get; set; }
+        public int IsRead { get; set; }
+		public int IsDelivered { get; set; }
+		public Content Attachment { get; set; }
     }
 
     public class Content

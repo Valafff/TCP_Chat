@@ -94,7 +94,12 @@ namespace Client
 
 		private void Button_Client_Click(object sender, RoutedEventArgs e)
 		{
-            Console.WriteLine($"Выбран клиент {((Button)sender).Content}");
+			if (!((Button)sender).Content.ToString().Contains(main.BLLClient.Login))
+			{
+				UIClientModel ReciverClient = main.UICLients.First(l => ((Button)sender).Content.ToString().Contains(l.ResultString));
+                ChatRoom room = new ChatRoom(main, ReciverClient, main.BLLClient.Login);
+				room.ShowDialog();
+			}
         }
 	}
 }

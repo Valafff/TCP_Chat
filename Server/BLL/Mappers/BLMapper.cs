@@ -5,6 +5,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Text.Json;
+using System.Threading.Channels;
 using System.Threading.Tasks;
 
 namespace Server.BLL.Mappers
@@ -81,17 +82,27 @@ namespace Server.BLL.Mappers
 		//Мапирование сообщения в DAL через загруженный словарь с BLLSlimClientModel
 		public static DALMessageModel MapMesBLLLToMesDAL(BLLMessageModel _mesBLL, Dictionary<int, string> _slimClients)
 		{
-			return new DALMessageModel()
+			try
 			{
-				Id = _mesBLL.Id,
-				FromUserID = _mesBLL.UserSender.Id,
-				ToUserID = _mesBLL.UserReciver.Id,
-				Date = _mesBLL.Date.ToString(),
-				MessageText = _mesBLL.MessageText,
-				MessageContent = JsonSerializer.Serialize(_mesBLL.MessageContentNames),
-				IsRead =_mesBLL.IsRead,
-				IsDelivered = _mesBLL.IsDelivered
-			};
+				int tempIdSender = (_slimClients.First(s => s.Value == _mesBLL.UserSender.Login)).Key;
+				int tempIdReciver = (_slimClients.First(s => s.Value == _mesBLL.UserReciver.Login)).Key;
+				return new DALMessageModel()
+				{
+					FromUserID = tempIdSender,
+					ToUserID = tempIdReciver,
+					Date = _mesBLL.Date.ToString(),
+					MessageText = _mesBLL.MessageText,
+					MessageContent = JsonSerializer.Serialize(_mesBLL.MessageContentNames),
+					IsRead = _mesBLL.IsRead,
+					IsDelivered = _mesBLL.IsDelivered
+				};
+			}
+			catch (Exception)
+			{
+
+				throw new ArgumentNullException();
+			}
+
 		}
 	}
 }

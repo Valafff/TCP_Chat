@@ -42,8 +42,11 @@ namespace Client.Windows
 			else
 			{
 				(DataContext as MainMenu).BLLClient.Password = TbUserPassword.Password;
-				Lambda registr = mainMenu.RegistrMe;
-				registr.Execute(this);
+
+				mainMenu.RegistrMe.Execute(mainMenu);
+
+				//Lambda registr = mainMenu.RegistrMe;
+				//registr.Execute(this);
 			}
 
 		}
