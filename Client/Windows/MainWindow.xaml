@@ -30,7 +30,7 @@
             </Grid.RowDefinitions>
 
             <ScrollViewer>
-                <ItemsControl x:Name="ClientsStack" ItemsSource="{Binding Path=UICLients, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}">
+                <ItemsControl x:Name="ClientsStack" ItemsSource="{Binding Path=UICLients, UpdateSourceTrigger=PropertyChanged}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
                             <StackPanel Orientation="Vertical"/>
@@ -38,7 +38,7 @@
                     </ItemsControl.ItemsPanel>
                     <ItemsControl.ItemTemplate>
                         <DataTemplate>
-                            <Button Content="{Binding Path=ResultString, UpdateSourceTrigger=PropertyChanged, Mode=TwoWay}" Margin="1" Background="{Binding BackColor}"  BorderBrush="{Binding BackColor}" HorizontalContentAlignment="Left"  Click="Button_Client_Click"/>
+                            <Button Content="{Binding Path=ResultString, UpdateSourceTrigger=PropertyChanged}" Margin="1" Background="{Binding BackColor}"  BorderBrush="{Binding BackColor}" HorizontalContentAlignment="Left"  Click="Button_Client_Click"/>
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>

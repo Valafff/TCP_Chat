@@ -4,6 +4,7 @@ using ConfigSerializeDeserialize;
 using Microsoft.Xaml.Behaviors_Test;
 using System;
 using System.Collections.Generic;
+using System.Collections.ObjectModel;
 using System.Collections.Specialized;
 using System.ComponentModel;
 using System.IO;
@@ -90,8 +91,8 @@ namespace Client.ViewModels
 		}
 
 		//Все зарегистрированные клиенты (отправляются сервером)
-		List<UIClientModel> _uiClients;
-		public List<UIClientModel> UICLients
+		ObservableCollection<UIClientModel> _uiClients;
+		public ObservableCollection<UIClientModel> UICLients
 		{
 			get => _uiClients;
 			set => SetField(ref _uiClients, value);
@@ -140,8 +141,8 @@ namespace Client.ViewModels
 		{
 			Title = "МиниЧат";
 			BLLClient = new BLLClientModel();
-			UICLients = new List<UIClientModel>();
-			OutputMessage = new BLLMessageModel() { UserReciver = new BLLSlimClientModel(), UserSender = new BLLSlimClientModel(), MessageContentNames = new List<string>()};
+			UICLients = new ObservableCollection<UIClientModel>();
+			OutputMessage = new BLLMessageModel() { UserReciver = new BLLSlimClientModel(), UserSender = new BLLSlimClientModel(), MessageContentNames = new List<string>() };
 			AllMessagesList = new Dictionary<UIClientModel, List<string>>();
 			LoadingAttachments_KeyNameValuePath = new Dictionary<string, string>();
 			ActiveClients = new List<string>();
@@ -176,7 +177,7 @@ namespace Client.ViewModels
 				execute: _ =>
 				{
 					AllMessagesList = ReadAllMessagesFromMemory(UICLients);
-					byte[] arr = Services.CourierServices.Packer(OutputMessage, CommandMessageTo);
+					byte[] arr = Services.CourierServices.Packer(OutputMessage, CommandMessageTo, LoadingAttachments_KeyNameValuePath);
 					SendMessageToServer(STREAM, arr);
 				},
 				canExecute => OutputMessage.UserReciver != null
@@ -301,7 +302,7 @@ namespace Client.ViewModels
 							try
 							{
 								Services.AccountService service = new Services.AccountService();
-								IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command);
+								IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command, out Dictionary<string, byte[]> nulldata);
 							}
 							catch (Exception ex)
 							{
@@ -408,13 +409,21 @@ namespace Client.ViewModels
 
 		void SendMessageToServer(Stream stream, byte[] _arr)
 		{
-			stream.Write(_arr);
-			stream.Flush();
+			//List<byte> bytes = _arr.ToList();
+			//foreach (byte b in bytes)
+			//{
+			//	var t = new byte[1];
+			//		t[0] = b;
+			//	stream.Write(t);
+			//}
+
+			stream.Write(_arr, 0, _arr.Length);
+			////stream.Flush();
 		}
 
 
 		//Получение списка всех сообщений от всех клиентов
-		Dictionary<UIClientModel, List<string>> ReadAllMessagesFromMemory(List<UIClientModel> _clients)
+		Dictionary<UIClientModel, List<string>> ReadAllMessagesFromMemory(ObservableCollection<UIClientModel> _clients)
 		{
 			Dictionary<UIClientModel, List<string>> dict = new Dictionary<UIClientModel, List<string>>();
 			if (!Directory.Exists(Directory.GetCurrentDirectory() + $"\\Clients\\"))
@@ -425,29 +434,28 @@ namespace Client.ViewModels
 			DirectoryInfo ClientDirectory = new DirectoryInfo(Directory.GetCurrentDirectory() + $"\\Clients\\");
 			DirectoryInfo[] directories = ClientDirectory.GetDirectories();
 
-
 			foreach (var item in directories)
 			{
 				FileInfo ClientMessagesFile = new FileInfo(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt");
 
-					if (ClientMessagesFile.Exists)
+				if (ClientMessagesFile.Exists)
+				{
+					var tempMessages = new List<string>();
+					using (StreamReader sr = new StreamReader(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt"))
 					{
-						var tempMessages = new List<string>();
-						using (StreamReader sr = new StreamReader(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt"))
+						while (!sr.EndOfStream)
 						{
-							while (!sr.EndOfStream)
-							{
-								tempMessages.Add(sr.ReadLine());
-							}
+							tempMessages.Add(sr.ReadLine());
 						}
-						dict.Add(key: _clients.First(c => c.Login == item.Name), value: tempMessages);
 					}
+					dict.Add(key: _clients.First(c => c.Login == item.Name), value: tempMessages);
+				}
 			}
 			return dict;
 		}
 
 		//_messagedata подгружаются из списка сообщений txt на диске 
-		void ResultStringBuilder(List<UIClientModel> _clients)
+		void ResultStringBuilder(ObservableCollection<UIClientModel> _clients)
 		{
 			foreach (var item in _clients)
 			{
@@ -467,12 +475,15 @@ namespace Client.ViewModels
 			}
 		}
 
-		public void RefreshUsers(List<UIClientModel> _clients)
-		{
-			Dictionary<UIClientModel, List<string>> dict = ReadAllMessagesFromMemory(_clients);
-			ResultStringBuilder(_clients);
+		//public void RefreshUsers(ObservableCollection<UIClientModel> _clients)
+		//{
+		//	//Поэлементное копирование
+		//	var tempDict = ReadAllMessagesFromMemory(_clients);
+		//	//AllMessagesList
 
-		}
+		//	ResultStringBuilder(_clients);
+
+		//}
 
 
 

@@ -15,14 +15,12 @@ namespace Server.BLL.Models
         public DateTime Date { get; set; }
         public int IsRead { get; set; }
 		public int IsDelivered { get; set; }
-		public Content Attachment { get; set; }
+		public Dictionary<string, byte[]> Attachments { get; set; }
     }
 
     public class Content
     {
         public string ServiceText { get; set; }
         public byte[] Entity { get; set; }
-        public Dictionary<string, byte[]> FileNameEntity { get; set; }
-
     }
 }

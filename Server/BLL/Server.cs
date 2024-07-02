@@ -135,11 +135,12 @@ namespace Server.BLL
 				else if (WorkMode)
 				{
 					BLLMessageModel IncomeMessage = new BLLMessageModel();
+					Dictionary<string, byte[]> fileData = new Dictionary<string, byte[]>();
 					string command = "NoCommand";
 					try
 					{
 						BLL.Services.AccountService service = new BLL.Services.AccountService();
-						IncomeMessage = CourierServices.Unpacker(workLeveldata, out command);
+						IncomeMessage = CourierServices.Unpacker(workLeveldata, out command, out fileData);
 					}
 					catch (Exception ex)
 					{
@@ -169,7 +170,7 @@ namespace Server.BLL
 					//Запрос на отправку сообщения другому пользователю
 					if (command == CommandMessageTo)
 					{
-						SendNewMessage(IncomeMessage);
+						SendNewMessage(IncomeMessage, fileData);
 					}
 				}
 				//Блок регистрации авторизации удаления аккаунта
@@ -340,38 +341,64 @@ namespace Server.BLL
 			//Для текущего клиента
 			async void PushUnreadMessages()
 			{
+				//try
+				//{
+				//	string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
+				//	int userId = (RegistredClients.First(l => l.Value == userReciverLogin)).Key;
+				//	MessageService service = new MessageService();
+				//	//Получен список непрочитанных сообщений с ссылками на вложения
+				//	List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, RegistredClients);
+
+				//	foreach (var message in unreadMessages)
+				//	{
+				//		byte[] outputArray = CourierServices.Packer(message.UserSender.Login, userReciverLogin, AnswerCatchMessages, message.MessageText, message.MessageContentNames);
+				//		await stream.WriteAsync(outputArray, 0, outputArray.Length);
+				//		await stream.FlushAsync();
+
+				//		//внесение данных в БД об отправлении сообщения ПОЛУЧЕНИЕ НЕ ФИКСИРУЕТЯ
+				//		message.IsDelivered = 1;
+				//		service.UpdateMessage(message, RegistredClients);
+				//	}
+				//}
+				//catch (Exception ex)
+				//{
+				//	Console.WriteLine(ex.Message);
+				//	Console.WriteLine("Ошибка поиска и отправления непрочитанных сообщений");
+				//}
+			}
+
+			//Протестировать!
+			//Для текущего клиента
+			async void SendNewMessage(BLLMessageModel _incomeMessage, Dictionary<string, byte[]> _fileData)
+			{
 				try
 				{
-					string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
-					int userId = (RegistredClients.First(l => l.Value == userReciverLogin)).Key;
 					MessageService service = new MessageService();
-					//Получен список непрочитанных сообщений с ссылками на вложения
-					List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, RegistredClients);
-
-					foreach (var message in unreadMessages)
+					service.InsertMessage(_incomeMessage, RegistredClients);
+					
+					if (_fileData!=null && _fileData.Count > 0)
 					{
-						byte[] outputArray = CourierServices.Packer(message.UserSender.Login, userReciverLogin, AnswerCatchMessages, message.MessageText, message.MessageContentNames);
-						await stream.WriteAsync(outputArray, 0, outputArray.Length);
-						await stream.FlushAsync();
-
-						//внесение данных в БД об отправлении сообщения ПОЛУЧЕНИЕ НЕ ФИКСИРУЕТЯ
-						message.IsDelivered = 1;
-						service.UpdateMessage(message, RegistredClients);
+						string directoryPath = Directory.GetCurrentDirectory() + $"\\Clients\\{_incomeMessage.UserReciver.Login}\\";
+						DirectoryInfo directoryInfo = new DirectoryInfo(directoryPath);
+						if (!directoryInfo.Exists)
+						{
+							directoryInfo.Create();
+						}
+						foreach (var file in _fileData)
+						{
+							using (FileStream fs = new FileStream(directoryPath + file.Key, FileMode.Create))
+							{
+								fs.Write(file.Value);
+							}				
+						}
 					}
 				}
 				catch (Exception ex)
 				{
 					Console.WriteLine(ex.Message);
-					Console.WriteLine("Ошибка поиска и отправления непрочитанных сообщений");
+					throw;
 				}
-			}
 
-			//Протестировать!
-			//Для текущего клиента
-			async void SendNewMessage(BLLMessageModel _incomeMessage)
-			{
-				MessageService service = new MessageService();
-				service.InsertMessage(_incomeMessage, RegistredClients);
 				//try
 				//{
 				//	string targetClientLogin = _incomeMessage.UserSender.Login;
