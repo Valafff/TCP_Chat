@@ -14,30 +14,31 @@ namespace Server.Tools
 	{
 		const int buffer10MB = 1048576;
 		const int buffer100MB = 1073741824;
-		public static Courier StreamToCourier(Stream stream, int buffersize = buffer10MB)
+		public static Courier StreamToCourier(Stream stream, int buffersize = 1024)
 		{
 			try
 			{
-				var ms = new MemoryStream();
-				byte[] b = new byte[buffersize];
-				int read;
-				while ((read = stream.Read(b, 0, b.Length)) > 0)
+				using (MemoryStream ms = new MemoryStream())
 				{
-					if (read < buffersize)
+					byte[] b = new byte[buffersize];
+					int read;
+					while ((read = stream.Read(b, 0, b.Length)) > 0)
 					{
-						var data = b[0..read];
-						ms.Write(data, 0, read);
-						break;
+						if (read < buffersize)
+						{
+							var data = b[0..read];
+							ms.Write(data, 0, read);
+							break;
+						}
+						else
+						{
+							ms.Write(b, 0, b.Length);
+						}
 					}
-					else
-					{
-						ms.Write(b, 0, b.Length);
-					}
+					ms.Position = 0;
+					BinaryFormatter formatter = new BinaryFormatter();
+					return (Courier)formatter.Deserialize(ms);
 				}
-                Console.WriteLine(ms.ToArray().Length);
-                //Десериализация
-                ms.Position = 0;
-				return (Courier)Serializer.Deserialize(typeof(Courier), ms);
 			}
 			catch (Exception ex)
 			{
@@ -47,13 +48,34 @@ namespace Server.Tools
 
 
 
-
-			////Не работает
-			//using (MemoryStream ms = new MemoryStream())
+			//using ProtoBuf;
+			//try
 			//{
-			//	stream.Position = 0;
-			//	stream.CopyTo(ms); ms.Position = 0;
-			//	var courier = Serializer.Deserialize(typeof(Courier), ms);
+			//	var ms = new MemoryStream();
+			//	byte[] b = new byte[buffersize];
+			//	int read;
+			//	while ((read = stream.Read(b, 0, b.Length)) > 0)
+			//	{
+			//		if (read < buffersize)
+			//		{
+			//			var data = b[0..read];
+			//			ms.Write(data, 0, read);
+			//			break;
+			//		}
+			//		else
+			//		{
+			//			ms.Write(b, 0, b.Length);
+			//		}
+			//	}
+			//	Console.WriteLine(ms.ToArray().Length);
+			//	//Десериализация
+			//	ms.Position = 0;
+			//	return (Courier)Serializer.Deserialize(typeof(Courier), ms);
+			//}
+			//catch (Exception ex)
+			//{
+			//	Console.WriteLine(ex.Message);
+			//	throw;
 			//}
 
 
@@ -74,7 +96,6 @@ namespace Server.Tools
 			//	foreach (byte[] data in bytesArrays)
 			//	{
 			//		resultArray.AddRange(data);
-
 			//	}
 
 		}

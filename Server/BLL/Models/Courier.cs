@@ -7,6 +7,7 @@ using System.Threading.Tasks;
 
 namespace Server.BLL.Models
 {
+	[Serializable]
 	[ProtoContract]
 	public class Courier
 	{
@@ -30,7 +31,7 @@ namespace Server.BLL.Models
         public byte Entity { get; set; }
     }
 
-	//[Serializable]
+	[Serializable]
 	[ProtoContract]
 	public class Content
 	{

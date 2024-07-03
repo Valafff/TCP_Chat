@@ -165,9 +165,7 @@ namespace Client.ViewModels
 					BLLClient.LastVisit = DateTime.Now;
 
 					Courier courier = new Courier() { Header = CommandRegisterMe, MessageText = JsonSerializer.Serialize(BLLClient) };
-					using var ms = new MemoryStream();
-					Serializer.Serialize(ms, courier);
-					var buffer = ms.ToArray();
+					var buffer = Server.BLL.Services.CourierServices.Packer(courier);
 					SendRegOrAuthClient(buffer);
 				},
 				canExecute => AuthtorizationMode == true
@@ -179,13 +177,7 @@ namespace Client.ViewModels
 				{
 					KeyValuePair<string, string> AuthorizeUser = new KeyValuePair<string, string>(key: BLLClient.Login, value: BLLClient.Password);
 					Courier courier = new Courier() { Header = CommandAuthorizeMe, MessageText = JsonSerializer.Serialize(AuthorizeUser) };
-					using var ms = new MemoryStream();
-					Serializer.Serialize(ms, courier);
-					var buffer = ms.ToArray();
-
-
-					//Server.BLL.Models.Courier content = new Server.BLL.Models.Courier() { Header = CommandAuthorizeMe, MessageText = JsonSerializer.Serialize(AuthorizeUser) };
-					//var contentByteArr = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(content));
+					var buffer = Server.BLL.Services.CourierServices.Packer(courier);
 					SendRegOrAuthClient(buffer);
 				},
 				canExecute => AuthtorizationMode == true

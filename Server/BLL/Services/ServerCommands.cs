@@ -6,6 +6,7 @@ using System.IO;
 using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -42,11 +43,7 @@ namespace Server.BLL.Services
 			try
 			{
 				Console.WriteLine($"Попытка подключения {_tcpClient.Client.RemoteEndPoint} рукопожатие OK\t{DateTime.Now}");
-				Courier courier = new Courier();
-				courier.Header = AnswerHelloUser;
-				using var ms = new MemoryStream();
-				Serializer.Serialize(ms, courier);
-				var buffer = ms.ToArray();
+				var buffer = CourierServices.Packer(AnswerHelloUser);
 				_stream.Write(buffer, 0, buffer.Length);
 				//stream.Flush();
 			}
@@ -71,10 +68,7 @@ namespace Server.BLL.Services
 					_registredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = newClient.Login });
 
-					Courier courier = new Courier() { Header = AnswerRegisterOk };
-					using var ms = new MemoryStream();
-					Serializer.Serialize(ms, courier);
-					var buffer = ms.ToArray();
+					var buffer = CourierServices.Packer(AnswerRegisterOk);
 					_stream.Write(buffer, 0, buffer.Length);
 
 					Console.WriteLine($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
@@ -82,10 +76,7 @@ namespace Server.BLL.Services
 				}
 				else
 				{
-					Courier courier = new Courier() { Header = AnswerRegisterFailed };
-					using var ms = new MemoryStream();
-					Serializer.Serialize(ms, courier);
-					var buffer = ms.ToArray();
+					var buffer = CourierServices.Packer(AnswerRegisterFailed);
 					_stream.Write(buffer, 0, buffer.Length);
 				}
 			}
@@ -111,18 +102,15 @@ namespace Server.BLL.Services
 					_registredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = AuthorizeUser.Key });
 					BLLMessageModel nullmessage = new BLLMessageModel();
-					byte[] buffer = CourierServices.Packer(nullmessage, AnswerAuthorizationOk);
-
+					
+					byte[] buffer = CourierServices.Packer(AnswerAuthorizationOk);
 					_stream.Write(buffer, 0, buffer.Length);
 					Console.WriteLine($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");
 				}
 				else
 				{
-					Courier courier = new Courier() { Header = AnswerAuthorizationFailed };
-					using var ms = new MemoryStream();
-					Serializer.Serialize(ms, courier);
-					var buffer = ms.ToArray();
+					var buffer = CourierServices.Packer(AnswerAuthorizationFailed);
 					_stream.Write(buffer, 0, buffer.Length);
 				}
 			}
@@ -141,10 +129,7 @@ namespace Server.BLL.Services
 				Courier courier = new Courier();
 				courier.Header = AnswerCatchUsers;
 				courier.MessageText = JsonSerializer.Serialize(_registredClients.Values);
-
-				using var ms = new MemoryStream();
-				Serializer.Serialize(ms, courier);
-				var buffer = ms.ToArray();
+				var buffer = Services.CourierServices.Packer(courier);
 				_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
@@ -166,10 +151,7 @@ namespace Server.BLL.Services
 				Courier courier = new Courier();
 				courier.Header = AnswerCatchActiveUsers;
 				courier.MessageText = JsonSerializer.Serialize(ActivClientsLogins);
-
-				using var ms = new MemoryStream();
-				Serializer.Serialize(ms, courier);
-				var buffer = ms.ToArray();
+				var buffer = CourierServices.Packer(courier);
 				_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
@@ -216,16 +198,13 @@ namespace Server.BLL.Services
 				}
 				//TODO Если клиент активен - передавать на прямую
 
-				courier = new Courier();
-				courier.Header = AnswerMessageSendOk;
-				byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+
+				byte[] buffer = CourierServices.Packer(AnswerMessageSendOk);
 				_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
 			{
-				Courier courier = new Courier();
-				courier.Header = AnswerMessageSendFailed;
-				byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+				byte[] buffer = CourierServices.Packer(AnswerMessageSendFailed);
 				_stream.Write(buffer, 0, buffer.Length);
 				Console.WriteLine(ex.Message);
 				throw;
@@ -234,4 +213,5 @@ namespace Server.BLL.Services
 
 
 	}
+
 }

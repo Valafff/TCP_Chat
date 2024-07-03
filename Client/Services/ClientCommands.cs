@@ -10,6 +10,8 @@ using System.Linq;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
+using System.Windows.Media.Animation;
+using Server.BLL.Services;
 
 namespace Client.Services
 {
@@ -40,7 +42,7 @@ namespace Client.Services
 
 		public void HelloServer(Stream _stream)
 		{
-			var data = Server.BLL.Services.CourierServices.Packer(CommandHelloMsr);
+			var data = CourierServices.Packer(CommandHelloMsr);
 			_stream.Write(data);
 		}
 
@@ -53,10 +55,7 @@ namespace Client.Services
 
 		public void RequesRegistredClients(Stream _stream)
 		{
-			Courier courier = new Courier() { Header = CommandGetMeUsers };
-			using var ms = new MemoryStream();
-			Serializer.Serialize(ms, courier);
-			var buffer = ms.ToArray();
+			var buffer = CourierServices.Packer(CommandGetMeUsers);
 			_stream.Write(buffer, 0, buffer.Length);
 		}
 
@@ -75,10 +74,7 @@ namespace Client.Services
 
 		public void RequestActiveUsers(Stream _stream)
 		{
-			Courier courier = new Courier() { Header = CommandGetMeActiveUsers };
-			using var ms = new MemoryStream();
-			Serializer.Serialize(ms, courier);
-			var buffer = ms.ToArray();
+			var buffer = CourierServices.Packer(CommandGetMeActiveUsers);
 			_stream.Write(buffer, 0, buffer.Length);
 		}
 

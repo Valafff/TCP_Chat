@@ -3,7 +3,10 @@ using Server.BLL.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
+using System.Diagnostics.Metrics;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -12,37 +15,51 @@ namespace Server.BLL.Services
 {
 	static public class CourierServices
 	{
-		////Упаковщик сообщения 
-		//static public byte[] Packer(string _senderLogin, string _reciverLogin, string _command, string _message, List<string> _contentFileNames)
-		//{
-		//	Courier courier = new Courier();
-		//	courier.Header = _command;
-		//	courier.SenderLogin = _senderLogin;
-		//	courier.ReciverLogin = _reciverLogin;
-		//	courier.MessageText = _message;
-		//	//if (_contentFileNames.Count > 0)
-		//	//{
-		//	//	DirectoryInfo ClientDirectory = new DirectoryInfo(Directory.GetCurrentDirectory() + $"\\Clients\\{_reciverLogin}");
-		//	//	FileInfo[] ClientFilesNamesInDir = ClientDirectory.GetFiles("*.*");
-		//	//	//Фильтруем файолы согласно имеющимся в сообщении
-		//	//	FileInfo[] ActualFiles = (FileInfo[])ClientFilesNamesInDir.Where(n => _contentFileNames.Contains(n.Name));
+		static public byte[] Packer(Courier courier)
+		{
+			try
+			{
+				BinaryFormatter formatter = new BinaryFormatter();
+				using (MemoryStream stream = new MemoryStream())//переводим объект в байты
+				{
+					formatter = new BinaryFormatter();
+					formatter.Serialize(stream, courier);
+					byte[] data = stream.ToArray();
+					return data;
+				}
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				throw;
+			}
 
-		//	//	for (int i = 0; i < ActualFiles.Length; i++)
-		//	//	{
-		//	//		//Размер буфера определяется размером читаемого файла
-		//	//		byte[] tempBuffer = new byte[ActualFiles[i].Length];
-		//	//		using (FileStream fs = new FileStream($"\\Clients\\" + _contentFileNames[i], FileMode.Open))
-		//	//		{
-		//	//			//Временный контейнер для наполнения массивом байт
-		//	//			fs.Read(tempBuffer, 0, tempBuffer.Length);
-		//	//		}
-		//	//		//в словарь помещаем имя файла и массив данных файла
-		//	//		courier.Attachment.FileNameEntity.Add(ActualFiles[i].Name, tempBuffer);
-		//	//	}
-		//	//}
-		//	return JsonSerializer.SerializeToUtf8Bytes(courier);
-		//}
+		}
 
+		static public byte[] Packer(string _command)
+		{
+
+			BinaryFormatter formatter = new BinaryFormatter();
+			using (MemoryStream stream = new MemoryStream())//переводим объект в байты
+			{
+				Courier courier = new Courier();
+				courier.Header = _command;
+				formatter = new BinaryFormatter();
+				formatter.Serialize(stream, courier);
+				byte[] data = stream.ToArray();
+				return data;
+			}
+
+
+			//Courier courier = new Courier();
+			//courier.Header = _command;
+			//using var ms = new MemoryStream();
+			//Serializer.Serialize(ms, courier);
+			//return ms.ToArray();
+
+
+			//return JsonSerializer.SerializeToUtf8Bytes(courier);
+		}
 
 		static public byte[] Packer(BLLMessageModel _message, string _command, Dictionary<string, string> _namesAndPaths = null)
 		{
@@ -71,12 +88,24 @@ namespace Server.BLL.Services
 					}
 				}
 
-				byte[] data;
-				using var ms = new MemoryStream();
-				Serializer.Serialize(ms, courier );
-				data = ms.ToArray();
-				return data;
+				BinaryFormatter formatter = new BinaryFormatter();
+				using (MemoryStream stream = new MemoryStream())//переводим объект в байты
+				{
+					formatter = new BinaryFormatter();
+					formatter.Serialize(stream, courier);
+					byte[] data = stream.ToArray();
+					return data;
+				}
 
+
+				//byte[] data;
+				//using var ms = new MemoryStream();
+				//Serializer.Serialize(ms, courier );
+				//data = ms.ToArray();
+				//return data;
+
+
+				//JsonSerializer
 				//return JsonSerializer.SerializeToUtf8Bytes(courier);
 			}
 			catch (Exception ex)
@@ -87,15 +116,7 @@ namespace Server.BLL.Services
 			
 		}
 
-		static public byte[] Packer(string _command)
-		{
-			Courier courier = new Courier();
-			courier.Header = _command;
-			using var ms = new MemoryStream();
-			Serializer.Serialize(ms, courier);
-			return ms.ToArray();
-			//return JsonSerializer.SerializeToUtf8Bytes(courier);
-		}
+
 
 
 
@@ -165,6 +186,59 @@ namespace Server.BLL.Services
 
 			}
 
+		}
+
+
+		public class Serialize_data<T>
+		{
+			BinaryFormatter formatter = new BinaryFormatter();
+			public byte[] GetBytesFromList(List<T> list)
+			{
+				using (MemoryStream stream = new MemoryStream())//переводим лист чего угодно в байты
+				{
+					formatter = new BinaryFormatter();
+					formatter.Serialize(stream, list);
+					byte[] byffer = stream.ToArray();
+					return byffer;
+				}
+
+			}
+			public byte[] GetBytesFromObj(T obj)
+			{
+				using (MemoryStream stream = new MemoryStream())//переводим объект в байты
+				{
+					formatter = new BinaryFormatter();
+					formatter.Serialize(stream, obj);
+					byte[] byffer = stream.ToArray();
+					return byffer;
+				}
+			}
+		}
+
+		public class Deserialize_data<T>
+		{
+			BinaryFormatter formatter = new BinaryFormatter();
+			//methods: получить лист юзеров
+			public T GetObgFromBytes(byte[] bytes)
+			{
+				using (MemoryStream stream = new MemoryStream(bytes))
+				{
+					formatter = new BinaryFormatter();
+					T obj = (T)formatter.Deserialize(stream);
+					return obj;
+				}
+			}
+			//получить лист сообщений
+			public List<T> GetListFromBytes(byte[] bytes)
+			{
+				using (MemoryStream stream = new MemoryStream(bytes))
+				{
+					List<T> list = new List<T>();
+					formatter = new BinaryFormatter();
+					list = (List<T>)formatter.Deserialize(stream);
+					return list;
+				}
+			}
 		}
 	}
 }
