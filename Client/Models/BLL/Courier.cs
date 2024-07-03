@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Client.ViewModels
 {
+	[Serializable]
 	public class Courier
 	{
 		public string Header { get; set; }
@@ -18,6 +19,7 @@ namespace Client.ViewModels
 		public Dictionary<string, byte[]> Attachments { get; set; }
 	}
 
+	[Serializable]
 	public class Content
 	{
 		public string ServiceText { get; set; }

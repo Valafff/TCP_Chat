@@ -113,5 +113,41 @@ namespace Server.BLL.Services
             }
 
 		}
+
+		static public List<BLLMessageModel> ListUnpacker(byte[] courierByteArr, out string _command, out List< Dictionary<string, byte[]>> _fileDataList)
+		{
+			try
+			{
+				_command = "NoCommand";
+				BLLMessageModel messageBLL = new BLLMessageModel() { UserReciver = new BLLSlimClientModel(), UserSender = new BLLSlimClientModel(), MessageContentNames = new List<string>() };
+				List<BLLMessageModel> messages = new List<BLLMessageModel>();
+				List<Dictionary<string, byte[]>> fileDataList = new List<Dictionary<string, byte[]>>();
+				//Распаковываем курьера
+				Courier courier = JsonSerializer.Deserialize<Courier>(courierByteArr);
+
+				_command = courier.Header;
+				if (courier.SenderLogin != null) messageBLL.UserSender.Login = courier.SenderLogin;
+				if (courier.ReciverLogin != null) messageBLL.UserReciver.Login = courier.ReciverLogin;
+				if (courier.MessageText != null) messageBLL.MessageText = courier.MessageText;
+				messageBLL.Date = courier.Date;
+				messageBLL.IsRead = courier.IsRead;
+				messageBLL.IsDelivered = courier.IsDelivered;
+				//_fileData = courier.Attachments;
+				
+				
+				
+				
+				
+				_fileDataList = fileDataList;
+				return messages;
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				throw;
+
+			}
+
+		}
 	}
 }

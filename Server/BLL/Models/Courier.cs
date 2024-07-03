@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 
 namespace Server.BLL.Models
 {
+    [Serializable]
 	public class Courier
 	{
         public string Header { get; set; }
@@ -18,7 +19,8 @@ namespace Server.BLL.Models
 		public Dictionary<string, byte[]> Attachments { get; set; }
     }
 
-    public class Content
+	[Serializable]
+	public class Content
     {
         public string ServiceText { get; set; }
         public byte[] Entity { get; set; }

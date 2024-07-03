@@ -2,6 +2,8 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Linq;
+using System.Runtime.Serialization;
+using System.Runtime.Serialization.Formatters.Binary;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -43,6 +45,7 @@ namespace Client.Services
 		//}
 
 
+
 		static public byte[] Packer(BLLMessageModel _message, string _command, Dictionary<string, string> _namesAndPaths = null)
 		{
 			try
@@ -66,14 +69,26 @@ namespace Client.Services
 						{
 							fs.Read(buffer, 0, buffer.Length);
 						}
-                        Console.WriteLine(buffer.Length);
                         //Помещаем имя файла в key сущность в value
                         courier.Attachments.Add(item.Key, buffer);
 					}
 				}
-				var t = JsonSerializer.SerializeToUtf8Bytes(courier);
-                Console.WriteLine(t.Length);
-                return t;
+
+
+				//var stream = new MemoryStream();
+				//var serializer = new DataContractSerializer(typeof(Courier));
+				//serializer.WriteObject(stream, courier);
+				//var t = stream.ToArray();
+				//return t;
+
+				//BinaryFormatter bf = new BinaryFormatter();
+				//using (MemoryStream ms = new MemoryStream())
+				//{
+				//	bf.Serialize(ms, courier);
+				//	var t = ms.ToArray();
+				//	return t;
+				//}
+				return JsonSerializer.SerializeToUtf8Bytes(courier);
 			}
 			catch (Exception ex)
 			{

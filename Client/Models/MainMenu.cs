@@ -48,6 +48,8 @@ namespace Client.ViewModels
 		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes";
 		const string AnswerCatchMessages = "CatchMessages";
 		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
+		const string AnswerMessageSendOk = "MessageSendOK";
+		const string AnswerMessageSendFailed = "MessageSendFailed";
 		const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
 
 		bool AuthtorizationMode = false;
@@ -238,6 +240,7 @@ namespace Client.ViewModels
 							if (serverAnswer.Contains(AnswerAuthorizationOk))
 							{
 								WorkMode = true;
+								//Первый запрос зарегистрированных клиентов
 								registredClients = ReadRegisterUsers(serverAnswer);
 								foreach (var item in registredClients)
 								{
@@ -247,6 +250,7 @@ namespace Client.ViewModels
 								{
 									CloseAuthWindowEvent();
 								}
+								//Первый запрос активных клиентов
 								GiveMeActiveClients(stream);
 							}
 							//Выполняется если сервер принимает подключение и стоит флаг автоматического входа
@@ -283,6 +287,7 @@ namespace Client.ViewModels
 								{
 									CloseRegistrationWindowEvent();
 								}
+								//Первый запрос активных клиентов
 								GiveMeActiveClients(stream);
 							}
 							else if (serverAnswer == AnswerRegisterFailed)
@@ -333,6 +338,14 @@ namespace Client.ViewModels
 										item.BackColor = "White";
 									}
 								}
+
+								//Первый запрос непрочитанных сообщений
+								Courier courier = new Courier();
+								courier.Header = CommandGiveMeUnReadMes;
+								byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+								stream.Write(buffer, 0, buffer.Length);
+								stream.Flush();
+
 							}
 
 
@@ -341,7 +354,14 @@ namespace Client.ViewModels
 
 
 
-							//Console.ReadKey();
+							if (command == AnswerMessageSendOk)
+							{
+								MessageBox.Show("Сообщение отправлено");
+							}
+							if (command == AnswerMessageSendFailed)
+							{
+								MessageBox.Show("Сообщение не отправлено");
+							}
 						}
 
 
@@ -409,16 +429,8 @@ namespace Client.ViewModels
 
 		void SendMessageToServer(Stream stream, byte[] _arr)
 		{
-			//List<byte> bytes = _arr.ToList();
-			//foreach (byte b in bytes)
-			//{
-			//	var t = new byte[1];
-			//		t[0] = b;
-			//	stream.Write(t);
-			//}
-
 			stream.Write(_arr, 0, _arr.Length);
-			////stream.Flush();
+			//stream.Flush();
 		}
 
 
@@ -484,11 +496,6 @@ namespace Client.ViewModels
 		//	ResultStringBuilder(_clients);
 
 		//}
-
-
-
-
-
 
 
 

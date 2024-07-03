@@ -1,6 +1,8 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Runtime.Serialization.Formatters.Binary;
+using System.Runtime.Serialization;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -12,6 +14,10 @@ namespace Server.Tools
 		const int buffer100MB = 1073741824;
 		public static byte[] StreamToByteArr(Stream stream, int buffersize = buffer100MB)
 		{
+
+
+
+
 			try
 			{
 				List<byte[]> bytesArrays = new List<byte[]>();
@@ -35,7 +41,7 @@ namespace Server.Tools
 			}
 			catch (Exception ex)
 			{
-                Console.WriteLine(ex.Message);
+                //Console.WriteLine(ex.Message);
                 throw;
 			}
 			

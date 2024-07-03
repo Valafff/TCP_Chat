@@ -11,6 +11,7 @@ using Server.BLL.Models;
 using System.Text.Json;
 using Server.BLL.Services;
 using System.Reflection;
+using System.Runtime.Serialization;
 
 namespace Server.BLL
 {
@@ -37,6 +38,8 @@ namespace Server.BLL
 		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes";
 		const string AnswerCatchMessages = "CatchMessages";
 		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
+		const string AnswerMessageSendOk = "MessageSendOK";
+		const string AnswerMessageSendFailed = "MessageSendFailed";
 		const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
 
 		//Id зарегистрированных клиентов и их логины
@@ -136,9 +139,27 @@ namespace Server.BLL
 				{
 					BLLMessageModel IncomeMessage = new BLLMessageModel();
 					Dictionary<string, byte[]> fileData = new Dictionary<string, byte[]>();
+					Courier courier = new Courier();
 					string command = "NoCommand";
 					try
 					{
+						//var stream2 = new MemoryStream(workLeveldata);
+						//var deserializer = new DataContractSerializer(typeof(Courier));
+						//courier = deserializer.ReadObject(stream2) as Courier;
+
+
+						//command = courier.Header;
+						//if (courier.SenderLogin != null) IncomeMessage.UserSender.Login = courier.SenderLogin;
+						//if (courier.ReciverLogin != null) IncomeMessage.UserReciver.Login = courier.ReciverLogin;
+						//if (courier.MessageText != null) IncomeMessage.MessageText = courier.MessageText;
+						//IncomeMessage.Date = courier.Date;
+						//IncomeMessage.IsRead = courier.IsRead;
+						//IncomeMessage.IsDelivered = courier.IsDelivered;
+						//fileData = courier.Attachments;
+
+
+
+
 						BLL.Services.AccountService service = new BLL.Services.AccountService();
 						IncomeMessage = CourierServices.Unpacker(workLeveldata, out command, out fileData);
 					}
@@ -341,6 +362,35 @@ namespace Server.BLL
 			//Для текущего клиента
 			async void PushUnreadMessages()
 			{
+
+                await Console.Out.WriteLineAsync("TODO Push unread messeges");
+
+				try
+				{
+					string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
+					int userId = (RegistredClients.First(l => l.Value == userReciverLogin)).Key;
+					MessageService service = new MessageService();
+					//Получен список непрочитанных сообщений с ссылками на вложения
+					List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, RegistredClients);
+
+					//foreach (var message in unreadMessages)
+					//{
+					//	byte[] outputArray = CourierServices.Packer(message.UserSender.Login, userReciverLogin, AnswerCatchMessages, message.MessageText, message.MessageContentNames);
+					//	await stream.WriteAsync(outputArray, 0, outputArray.Length);
+					//	await stream.FlushAsync();
+
+					//	//внесение данных в БД об отправлении сообщения ПОЛУЧЕНИЕ НЕ ФИКСИРУЕТЯ
+					//	message.IsDelivered = 1;
+					//	service.UpdateMessage(message, RegistredClients);
+					//}
+				}
+				catch (Exception ex)
+				{
+					Console.WriteLine(ex.Message);
+					Console.WriteLine("Ошибка поиска и отправления непрочитанных сообщений");
+				}
+
+
 				//try
 				//{
 				//	string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
@@ -373,9 +423,10 @@ namespace Server.BLL
 			{
 				try
 				{
+					//Запись данных в БД
 					MessageService service = new MessageService();
-					service.InsertMessage(_incomeMessage, RegistredClients);
-					
+					_incomeMessage.MessageContentNames = _fileData.Keys.ToList();
+					service.InsertMessage(_incomeMessage, RegistredClients);				
 					if (_fileData!=null && _fileData.Count > 0)
 					{
 						string directoryPath = Directory.GetCurrentDirectory() + $"\\Clients\\{_incomeMessage.UserReciver.Login}\\";
@@ -392,36 +443,27 @@ namespace Server.BLL
 							}				
 						}
 					}
+					//TODO Если клиент активен - передавать на прямую
+
+					Courier courier = new Courier();
+					courier.Header = AnswerMessageSendOk;
+					byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+					await stream.WriteAsync(buffer, 0, buffer.Length);
+					await stream.FlushAsync();
+
 				}
 				catch (Exception ex)
 				{
+					Courier courier = new Courier();
+					courier.Header = AnswerMessageSendFailed;
+					byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+					await stream.WriteAsync(buffer, 0, buffer.Length);
+					await stream.FlushAsync();
 					Console.WriteLine(ex.Message);
 					throw;
 				}
-
-				//try
-				//{
-				//	string targetClientLogin = _incomeMessage.UserSender.Login;
-				//	ActiveClientLogin nashClient = ActiveClients.First(l => l.Login == targetClientLogin);
-
-				//	//Работа под большим вопросом
-				//	NetworkStream tempstream = nashClient.ActiveClient.GetStream();
-
-				//	byte[] outputArray = CourierServices.Packer(_incomeMessage.UserSender.Login, _incomeMessage.UserReciver.Login, CommandTakeMessage, _incomeMessage.MessageText, _incomeMessage.MessageContentNames);
-				//	await stream.WriteAsync(outputArray, 0, outputArray.Length);
-				//	await stream.FlushAsync();
-
-
-				//	tempstream.Close();
-				//}
-				//catch (Exception ex)
-				//{
-				//	Console.WriteLine(ex.Message);
-				//	Console.WriteLine("Ошибка отправки сообщения");
-				//}
 			}
 		}
-
 		void CheckActiveClients(List<ActiveClientLogin> _clients)
 		{
 			object LockObj = new object();
