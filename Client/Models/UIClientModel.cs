@@ -15,6 +15,5 @@ namespace Client.Models
 		public DateTime LastVisit { get; set; }
         public string ResultString { get; set; }
         public bool IsActive { get; set; } = false;
-        public string BackColor { get; set; }
     }
 }

@@ -10,6 +10,7 @@ namespace Server.BLL.Models
 	public class ActiveClientLogin
 	{
         public TcpClient ActiveClient { get; set; }
-        public string? Login { get; set; }
+		public Stream ClientStream { get; set; }
+		public string? Login { get; set; }
     }
 }

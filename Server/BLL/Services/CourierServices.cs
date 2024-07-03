@@ -1,4 +1,5 @@
-﻿using Server.BLL.Models;
+﻿using ProtoBuf;
+using Server.BLL.Models;
 using System;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
@@ -49,8 +50,8 @@ namespace Server.BLL.Services
 			{
 				Courier courier = new Courier() { Attachments = new Dictionary<string, byte[]>() };
 				courier.Header = _command;
-				courier.SenderLogin = _message.UserSender.Login;
-				courier.ReciverLogin = _message.UserReciver.Login;
+				if (_message.UserSender != null) courier.SenderLogin = _message.UserSender.Login;
+				if (_message.UserReciver != null) courier.ReciverLogin = _message.UserReciver.Login;
 				courier.MessageText = _message.MessageText;
 				courier.Date = _message.Date;
 				courier.IsDelivered = _message.IsDelivered;
@@ -69,7 +70,14 @@ namespace Server.BLL.Services
 						courier.Attachments.Add(item.Key, buffer);
 					}
 				}
-				return JsonSerializer.SerializeToUtf8Bytes(courier);
+
+				byte[] data;
+				using var ms = new MemoryStream();
+				Serializer.Serialize(ms, courier );
+				data = ms.ToArray();
+				return data;
+
+				//return JsonSerializer.SerializeToUtf8Bytes(courier);
 			}
 			catch (Exception ex)
 			{
@@ -83,8 +91,14 @@ namespace Server.BLL.Services
 		{
 			Courier courier = new Courier();
 			courier.Header = _command;
-			return JsonSerializer.SerializeToUtf8Bytes(courier);
+			using var ms = new MemoryStream();
+			Serializer.Serialize(ms, courier);
+			return ms.ToArray();
+			//return JsonSerializer.SerializeToUtf8Bytes(courier);
 		}
+
+
+
 		//Распаковщик сообщения. На входе объект для распаковки, на выходе модель BLL с путями, записанные в директорию с клиентом контент если есть, команда 
 		static public BLLMessageModel Unpacker(byte[] courierByteArr, out string _command, out Dictionary<string, byte[]> _fileData)
 		{
@@ -93,12 +107,15 @@ namespace Server.BLL.Services
 				_command = "NoCommand";
 				BLLMessageModel messageBLL = new BLLMessageModel() { UserReciver = new BLLSlimClientModel(), UserSender = new BLLSlimClientModel(), MessageContentNames = new List<string>() };
 				//Распаковываем курьера
-				Courier courier = JsonSerializer.Deserialize<Courier>(courierByteArr);
+				//Courier courier = JsonSerializer.Deserialize<Courier>(courierByteArr);
+
+				using var ms = new MemoryStream();
+				Courier courier = Serializer.Deserialize<Courier>(ms);
 
 				_command = courier.Header;
 				if (courier.SenderLogin != null) messageBLL.UserSender.Login = courier.SenderLogin;
 				if (courier.ReciverLogin != null) messageBLL.UserReciver.Login = courier.ReciverLogin;
-				if (courier.MessageText != null) messageBLL.MessageText = courier.MessageText;
+				messageBLL.MessageText = courier.MessageText;
 				messageBLL.Date = courier.Date;
 				messageBLL.IsRead = courier.IsRead;
 				messageBLL.IsDelivered = courier.IsDelivered;

@@ -14,8 +14,9 @@
     <DockPanel>
         <Menu DockPanel.Dock="Top">
             <MenuItem Header="Работа с чатом">
-                <MenuItem Header="Новая регистрация" Click="MenuItem_Click_ReloadConnection"/>
+                <MenuItem Header="Новая регистрация" Click="MenuItem_NewRegistration_Click"/>
                 <MenuItem Header="Авторизация" Click="MenuItem_Click_Authtorize"/>
+                <MenuItem Header="Переподключение" Click="MenuItem_Click_ReloadConnection"/>
                 <MenuItem Header="Выход" Click="MenuItem_Click_CloseChat"/>
             </MenuItem>
             <MenuItem Header="Настройки">
@@ -29,7 +30,7 @@
                 <RowDefinition Height="1*"/>
             </Grid.RowDefinitions>
 
-            <ScrollViewer>
+            <!--<ScrollViewer>
                 <ItemsControl x:Name="ClientsStack" ItemsSource="{Binding Path=UICLients, UpdateSourceTrigger=PropertyChanged}">
                     <ItemsControl.ItemsPanel>
                         <ItemsPanelTemplate>
@@ -42,6 +43,10 @@
                         </DataTemplate>
                     </ItemsControl.ItemTemplate>
                 </ItemsControl>
+            </ScrollViewer>-->
+
+            <ScrollViewer>
+                <StackPanel x:Name="ClientsStack" Orientation="Vertical" />
             </ScrollViewer>
 
 

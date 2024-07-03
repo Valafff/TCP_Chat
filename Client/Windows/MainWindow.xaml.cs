@@ -21,7 +21,7 @@ namespace Client
 	{
 
 		MainMenu main = new MainMenu();
-		UserConfig user =  new UserConfig();
+		UserConfig user = new UserConfig();
 		ChatConfig chat = new ChatConfig();
 
 		public MainWindow()
@@ -44,7 +44,7 @@ namespace Client
 			}
 
 
-			if (chat.ServerIP == null || chat.ServerPort == 0 )
+			if (chat.ServerIP == null || chat.ServerPort == 0)
 			{
 				OptionsWindow options = new OptionsWindow();
 				options.ShowDialog();
@@ -55,7 +55,7 @@ namespace Client
 
 			main.TCPClientWork(IPAddress.Parse(chat.ServerIP), chat.ServerPort);
 			Task.Run(new Action(() => main.NetworkStreamReader()));
-			
+
 
 			InitializeComponent();
 			DataContext = main;
@@ -66,13 +66,13 @@ namespace Client
 				RegistrationWindow window = new RegistrationWindow(main);
 				window.ShowDialog();
 			}
-
-			if(!user.AutoAuthtorization && !firstAuthtorize)
+			if (!user.AutoAuthtorization && !firstAuthtorize)
 			{
 				AuthtorizeWindow window = new AuthtorizeWindow(main);
 				window.ShowDialog();
 			}
 
+			main.UpdateWindowsWithClients += UpdateClients;
 
 		}
 
@@ -97,9 +97,37 @@ namespace Client
 			if (!((Button)sender).Content.ToString().Contains(main.BLLClient.Login))
 			{
 				UIClientModel ReciverClient = main.UICLients.First(l => ((Button)sender).Content.ToString().Contains(l.ResultString));
-                ChatRoom room = new ChatRoom(main, ReciverClient, main.BLLClient.Login);
+				ChatRoom room = new ChatRoom(main, ReciverClient, main.BLLClient.Login);
 				room.ShowDialog();
 			}
-        }
+		}
+
+		private void MenuItem_NewRegistration_Click(object sender, RoutedEventArgs e)
+		{
+			main.BLLClient.Login = "";
+			main.BLLClient.FirstName = "";
+			main.BLLClient.SecondName = "";
+			main.UserConfigData.AutoAuthtorization = false;
+			main.ReloadConnection();
+			RegistrationWindow window = new RegistrationWindow(main);
+			window.ShowDialog();
+		}
+
+		void UpdateClients()
+		{
+			Application.Current.Dispatcher.Invoke(() =>
+			{
+				foreach (var item in main.UICLients)
+				{
+					Button bt = new Button() { Content = $"{item.ResultString}", BorderBrush = Brushes.White,  Background = item.IsActive == true ? Brushes.LawnGreen : Brushes.White };
+					bt.Click += Button_Client_Click;
+					bt.HorizontalAlignment = HorizontalAlignment.Left;
+					Grid.SetRow(bt, 0);
+					ClientsStack.Children.Add(bt);
+				}
+			});
+
+		}
+
 	}
 }

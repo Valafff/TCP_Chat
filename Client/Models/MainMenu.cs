@@ -1,7 +1,9 @@
 ﻿using Client.Models;
-using Client.Tools;
+using Client.Services;
 using ConfigSerializeDeserialize;
 using Microsoft.Xaml.Behaviors_Test;
+using ProtoBuf;
+using Server.BLL.Models;
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
@@ -17,6 +19,7 @@ using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
+using System.Windows.Controls;
 using System.Windows.Media.TextFormatting;
 
 namespace Client.ViewModels
@@ -28,6 +31,7 @@ namespace Client.ViewModels
 		public event SendContentToStream SendRegOrAuthClient;
 		public event VoidEvent CloseRegistrationWindowEvent;
 		public event VoidEvent CloseAuthWindowEvent;
+		public event VoidEvent UpdateWindowsWithClients;
 
 		//Система команд
 		const string CommandHelloMsr = "HelloMsr";
@@ -54,8 +58,10 @@ namespace Client.ViewModels
 
 		bool AuthtorizationMode = false;
 		bool WorkMode = false;
+
 		const int delay = 10;
 		const int buffersize = 1024;
+
 		TcpClient tcpClient = new TcpClient();
 		NetworkStream STREAM;
 		IPAddress SERVERIPADDRESS;
@@ -70,8 +76,8 @@ namespace Client.ViewModels
 		//}
 
 
-		BLLMessageModel _outputMessage;
-		public BLLMessageModel OutputMessage
+		Server.BLL.Models.BLLMessageModel _outputMessage;
+		public Server.BLL.Models.BLLMessageModel OutputMessage
 		{
 			get => _outputMessage;
 			set => SetField(ref _outputMessage, value);
@@ -120,8 +126,8 @@ namespace Client.ViewModels
 
 
 		//Пользователь после авторизации
-		BLLClientModel _bllClientModel;
-		public BLLClientModel BLLClient
+		Server.BLL.Models.BLLClientModel _bllClientModel;
+		public Server.BLL.Models.BLLClientModel BLLClient
 		{
 			get => _bllClientModel;
 			set => SetField(ref _bllClientModel, value);
@@ -142,9 +148,9 @@ namespace Client.ViewModels
 		public MainMenu()
 		{
 			Title = "МиниЧат";
-			BLLClient = new BLLClientModel();
+			BLLClient = new Server.BLL.Models.BLLClientModel();
 			UICLients = new ObservableCollection<UIClientModel>();
-			OutputMessage = new BLLMessageModel() { UserReciver = new BLLSlimClientModel(), UserSender = new BLLSlimClientModel(), MessageContentNames = new List<string>() };
+			OutputMessage = new Server.BLL.Models.BLLMessageModel() { UserReciver = new Server.BLL.Models.BLLSlimClientModel(), UserSender = new Server.BLL.Models.BLLSlimClientModel(), MessageContentNames = new List<string>() };
 			AllMessagesList = new Dictionary<UIClientModel, List<string>>();
 			LoadingAttachments_KeyNameValuePath = new Dictionary<string, string>();
 			ActiveClients = new List<string>();
@@ -157,20 +163,30 @@ namespace Client.ViewModels
 				{
 					BLLClient.Status = 1;
 					BLLClient.LastVisit = DateTime.Now;
-					var clientByteArr = JsonSerializer.SerializeToUtf8Bytes(BLLClient);
-					Content content = new Content() { ServiceText = CommandRegisterMe, Entity = clientByteArr };
-					var contentByteArr = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(content));
-					SendRegOrAuthClient(contentByteArr);
+
+					Courier courier = new Courier() { Header = CommandRegisterMe, MessageText = JsonSerializer.Serialize(BLLClient) };
+					using var ms = new MemoryStream();
+					Serializer.Serialize(ms, courier);
+					var buffer = ms.ToArray();
+					SendRegOrAuthClient(buffer);
 				},
 				canExecute => AuthtorizationMode == true
 				);
+
+			//Update
 			Authtorizeme = new Lambda(
 				execute: _ =>
 				{
 					KeyValuePair<string, string> AuthorizeUser = new KeyValuePair<string, string>(key: BLLClient.Login, value: BLLClient.Password);
-					Content content = new Content() { ServiceText = CommandAuthorizeMe, Entity = JsonSerializer.SerializeToUtf8Bytes(AuthorizeUser) };
-					var contentByteArr = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(content));
-					SendRegOrAuthClient(contentByteArr);
+					Courier courier = new Courier() { Header = CommandAuthorizeMe, MessageText = JsonSerializer.Serialize(AuthorizeUser) };
+					using var ms = new MemoryStream();
+					Serializer.Serialize(ms, courier);
+					var buffer = ms.ToArray();
+
+
+					//Server.BLL.Models.Courier content = new Server.BLL.Models.Courier() { Header = CommandAuthorizeMe, MessageText = JsonSerializer.Serialize(AuthorizeUser) };
+					//var contentByteArr = Encoding.UTF8.GetBytes(JsonSerializer.Serialize(content));
+					SendRegOrAuthClient(buffer);
 				},
 				canExecute => AuthtorizationMode == true
 				);
@@ -179,7 +195,7 @@ namespace Client.ViewModels
 				execute: _ =>
 				{
 					AllMessagesList = ReadAllMessagesFromMemory(UICLients);
-					byte[] arr = Services.CourierServices.Packer(OutputMessage, CommandMessageTo, LoadingAttachments_KeyNameValuePath);
+					byte[] arr = Server.BLL.Services.CourierServices.Packer(OutputMessage, CommandMessageTo, LoadingAttachments_KeyNameValuePath);
 					SendMessageToServer(STREAM, arr);
 				},
 				canExecute => OutputMessage.UserReciver != null
@@ -187,19 +203,19 @@ namespace Client.ViewModels
 		}
 
 
-
+		ClientCommands commands = new ClientCommands();
 		public void TCPClientWork(IPAddress _serverIP, int _serverPort)
 		{
 			try
 			{
+
 				SERVERIPADDRESS = _serverIP;
 				SERVERPORT = _serverPort;
 				tcpClient.Connect(_serverIP, _serverPort);
 				NetworkStream stream = tcpClient.GetStream();
 				STREAM = stream;
-				//Контрольное сообщение серверу
-				byte[] data = Encoding.UTF8.GetBytes(CommandHelloMsr);
-				stream.Write(data);
+
+				commands.HelloServer(stream);
 			}
 			catch (Exception ex)
 			{
@@ -211,103 +227,170 @@ namespace Client.ViewModels
 		//Чтение данных отправленных сервером и Логика работы клиента
 		public void NetworkStreamReader()
 		{
-			string serverAnswer = "";
-			byte[] workLeveldata = null;
+			//string serverAnswer = "";
+
+			//Console.ReadKey();
+
 			try
 			{
 				using NetworkStream stream = tcpClient.GetStream();
+
 				while (true)
 				{
+					Server.BLL.Models.Courier courier = Server.Tools.StreamToCourierClass.StreamToCourier(stream);
+					Console.WriteLine(courier.Header);
 					try
 					{
+						//Автоматическая авторизация выполняется если сервер принимает подключение и стоит флаг автоматического входа
+						if (courier.Header == AnswerHelloUser && UserConfigData.AutoAuthtorization)
+						{
+							commands.AutoAuthtoeize(BLLClient, this, UserConfigData);
+						}
+						if (courier.Header == AnswerRegisterFailed)
+						{
+							MessageBox.Show("Отказ в регистрации. Логин занят или введены некорректные символы");
+						}
+						if (courier.Header == AnswerAuthorizationFailed)
+						{
+							MessageBox.Show("Ошибка авторизации");
+						}
+						if (courier.Header == AnswerAuthorizationOk || courier.Header == AnswerRegisterOk)
+						{
+							commands.RequesRegistredClients(stream);
+						}
+						if (courier.Header == AnswerCatchUsers)
+						{
+							List<string> temp = commands.ReadRegistredClients(courier);
+							foreach (var item in temp)
+							{
+								Application.Current.Dispatcher.Invoke(() => { UICLients.Add(new UIClientModel() { Login = item }); });
+							}
+						}
+						if (courier.Header == AnswerCatchUsers)
+						{
+							commands.RequestActiveUsers(stream);
+						}
+						if (courier.Header == AnswerCatchActiveUsers)
+						{
+							ActiveClients = commands.ReadActiveClients(courier);
+							CheckActiveClients();
+							ResultStringBuilder(UICLients);
+							//Обновление UI
+							UpdateWindowsWithClients();
+						}
+						if (courier.Header == AnswerMessageSendOk)
+						{
+							MessageBox.Show("Сообщение отправлено");
+						}
+						if (courier.Header == AnswerMessageSendFailed)
+						{
+							MessageBox.Show("Сообщение не отправлено");
+						}
+
+						//Дай мне список непрочитанных сообщений
+
+
+
+
+
 						//Расшифровка сообщений до авторизации
 						if (!WorkMode)
 						{
-							serverAnswer = ByteToString.GetStringFromStream(stream);
+							//serverAnswer = ByteToString.GetStringFromStream(stream);
 						}
 						//Расшифровка сообщений после авторизации
 						else
 						{
-							workLeveldata = StreamToByte.StreamToByteArr(stream);
+							//workLeveldata = StreamToCourierClass.StreamToByteArr(stream);
 						}
 
 						if (!WorkMode)
 						{
 							//Контрольное прослушивание сообщений сервера
-							Console.WriteLine(serverAnswer);
+							//Console.WriteLine(serverAnswer);
 
 							//запрос всех зарегистрированных пользователей
-							if (serverAnswer.Contains(AnswerAuthorizationOk))
-							{
-								WorkMode = true;
-								//Первый запрос зарегистрированных клиентов
-								registredClients = ReadRegisterUsers(serverAnswer);
-								foreach (var item in registredClients)
-								{
-									UICLients.Add(new UIClientModel() { Login = item });
-								}
-								if (CloseAuthWindowEvent != null)
-								{
-									CloseAuthWindowEvent();
-								}
-								//Первый запрос активных клиентов
-								GiveMeActiveClients(stream);
-							}
-							//Выполняется если сервер принимает подключение и стоит флаг автоматического входа
-							else if (serverAnswer == AnswerHelloUser && UserConfigData.AutoAuthtorization)
-							{
-								BLLClient.Login = UserConfigData.Login;
-								BLLClient.Password = UserConfigData.Password;
-								Authtorizeme.Execute(this);
-							}
-							//Если сервер принимает подключение
-							else if (serverAnswer == AnswerHelloUser)
-							{
-								//Клиент может регистрироваться, авторизоваться, удалить аккаунт
-								AuthtorizationMode = true;
-							}
-							//Если регистрация прошла успешно
-							else if (serverAnswer.Contains(AnswerRegisterOk))
-							{
-								if (AutoAuthtorization) UserConfigData.Login = BLLClient.Login;
-								if (AutoAuthtorization) UserConfigData.Password = BLLClient.Password;
-								UserConfigData.FirstName = BLLClient.FirstName;
-								UserConfigData.SecondName = BLLClient.SecondName;
-								UserConfigData.AutoAuthtorization = AutoAuthtorization;
+							//if (serverAnswer.Contains(AnswerAuthorizationOk))
+							//{
+							//	WorkMode = true;
+							//	//Первый запрос зарегистрированных клиентов
+							//	registredClients = ReadRegisterUsers(serverAnswer);
+							//	foreach (var item in registredClients)
+							//	{
+							//		UICLients.Add(new UIClientModel() { Login = item });
+							//	}
+							//	if (CloseAuthWindowEvent != null)
+							//	{
+							//		CloseAuthWindowEvent();
+							//	}
+							//	//Первый запрос активных клиентов
+							//	GiveMeActiveClients(stream);
+							//}
 
-								ConfigWriteReadJson.ReWriteConfig(UserConfigData, "UserConfig.json");
-								MessageBox.Show("Регистрация прошла успешно!");
-								WorkMode = true;
-								registredClients = ReadRegisterUsers(serverAnswer);
-								foreach (var item in registredClients)
-								{
-									UICLients.Add(new UIClientModel() { Login = item });
-								}
-								if (CloseRegistrationWindowEvent != null)
-								{
-									CloseRegistrationWindowEvent();
-								}
-								//Первый запрос активных клиентов
-								GiveMeActiveClients(stream);
-							}
-							else if (serverAnswer == AnswerRegisterFailed)
-							{
-								MessageBox.Show("Отказ в регистрации. Логин занят или введены некорректные символы");
-							}
-							else if (serverAnswer == AnswerAuthorizationFailed)
-							{
-								MessageBox.Show("Ошибка авторизации");
-							}
+
+
+
+
+							////Выполняется если сервер принимает подключение и стоит флаг автоматического входа
+							//else if (serverAnswer == AnswerHelloUser && UserConfigData.AutoAuthtorization)
+							//{
+							//	BLLClient.Login = UserConfigData.Login;
+							//	BLLClient.Password = UserConfigData.Password;
+							//	Authtorizeme.Execute(this);
+							//}
+
+
+
+
+
+							////Если сервер принимает подключение
+							//else if (serverAnswer == AnswerHelloUser)
+							//{
+							//	//Клиент может регистрироваться, авторизоваться, удалить аккаунт
+							//	AuthtorizationMode = true;
+							//}
+							////Если регистрация прошла успешно
+							//else if (serverAnswer.Contains(AnswerRegisterOk))
+							//{
+							//	if (AutoAuthtorization) UserConfigData.Login = BLLClient.Login;
+							//	if (AutoAuthtorization) UserConfigData.Password = BLLClient.Password;
+							//	UserConfigData.FirstName = BLLClient.FirstName;
+							//	UserConfigData.SecondName = BLLClient.SecondName;
+							//	UserConfigData.AutoAuthtorization = AutoAuthtorization;
+
+							//	ConfigWriteReadJson.ReWriteConfig(UserConfigData, "UserConfig.json");
+							//	MessageBox.Show("Регистрация прошла успешно!");
+							//	WorkMode = true;
+							//	registredClients = ReadRegisterUsers(serverAnswer);
+							//	foreach (var item in registredClients)
+							//	{
+							//		UICLients.Add(new UIClientModel() { Login = item });
+							//	}
+							//	if (CloseRegistrationWindowEvent != null)
+							//	{
+							//		CloseRegistrationWindowEvent();
+							//	}
+							//	//Первый запрос активных клиентов
+							//	GiveMeActiveClients(stream);
+							//}
+							//else if (serverAnswer == AnswerRegisterFailed)
+							//{
+							//	MessageBox.Show("Отказ в регистрации. Логин занят или введены некорректные символы");
+							//}
+							//else if (serverAnswer == AnswerAuthorizationFailed)
+							//{
+							//	MessageBox.Show("Ошибка авторизации");
+							//}
 							//Не обработано событие удаления клиента
 						}
 						else if (WorkMode)
 						{
-							BLLMessageModel IncomeMessage = new BLLMessageModel();
+							Server.BLL.Models.BLLMessageModel IncomeMessage = new Server.BLL.Models.BLLMessageModel();
 							string command = "NoCommand";
 							try
 							{
-								Services.AccountService service = new Services.AccountService();
-								IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command, out Dictionary<string, byte[]> nulldata);
+								//Services.AccountService service = new Services.AccountService();
+								//IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command, out Dictionary<string, byte[]> nulldata);
 							}
 							catch (Exception ex)
 							{
@@ -320,7 +403,7 @@ namespace Client.ViewModels
 							if (command == AnswerCatchActiveUsers)
 							{
 								AllMessagesList = ReadAllMessagesFromMemory(UICLients);
-								ResultStringBuilder(UICLients);
+
 								if (IncomeMessage.MessageText != null)
 								{
 									ActiveClients = JsonSerializer.Deserialize<List<string>>(IncomeMessage.MessageText);
@@ -330,17 +413,17 @@ namespace Client.ViewModels
 									if (ActiveClients.Contains(item.Login))
 									{
 										item.IsActive = true;
-										item.BackColor = "LawnGreen";
+										//item.BackColor = "LawnGreen";
 									}
 									else
 									{
 										item.IsActive = false;
-										item.BackColor = "White";
+										//item.BackColor = "White";
 									}
 								}
 
 								//Первый запрос непрочитанных сообщений
-								Courier courier = new Courier();
+								Server.BLL.Models.Courier courier_OLD = new Server.BLL.Models.Courier();
 								courier.Header = CommandGiveMeUnReadMes;
 								byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
 								stream.Write(buffer, 0, buffer.Length);
@@ -353,15 +436,6 @@ namespace Client.ViewModels
 
 
 
-
-							if (command == AnswerMessageSendOk)
-							{
-								MessageBox.Show("Сообщение отправлено");
-							}
-							if (command == AnswerMessageSendFailed)
-							{
-								MessageBox.Show("Сообщение не отправлено");
-							}
 						}
 
 
@@ -385,8 +459,8 @@ namespace Client.ViewModels
 		{
 			try
 			{
-				STREAM.WriteAsync(content);
-				STREAM.Flush();
+				STREAM.Write(content);
+				//STREAM.Flush();
 			}
 			catch (Exception ex)
 			{
@@ -399,38 +473,50 @@ namespace Client.ViewModels
 		public void ReloadConnection()
 		{
 			tcpClient.Close();
+			Task.Delay(100).Wait();
 			tcpClient = new TcpClient();
 			TCPClientWork(SERVERIPADDRESS, SERVERPORT);
 			Task.Run(new Action(() => NetworkStreamReader()));
 		}
 
-		List<string> ReadRegisterUsers(string _inputString)
-		{
-			try
-			{
-				Content content = JsonSerializer.Deserialize<Content>(_inputString);
-				List<string> reg = new List<string>();
-				reg = JsonSerializer.Deserialize<List<string>>(content.Entity);
-				return reg;
-			}
-			catch (Exception ex)
-			{
-				//Console.WriteLine(ex);
-				return null;
-			}
-		}
+		//public void ConnectWithNewrop(BLLClientModel _client, UserConfig _userConfig)
+		//{
+		//	BLLClient = _client;
+		//	UserConfigData = _userConfig;
+		//	tcpClient.Close();
+		//	Task.Delay(100).Wait();
+		//	tcpClient = new TcpClient();
+		//	TCPClientWork(SERVERIPADDRESS, SERVERPORT);
+		//	Task.Run(new Action(() => NetworkStreamReader()));
+		//}
 
-		void GiveMeActiveClients(Stream stream)
-		{
-			byte[] outputArray = Services.CourierServices.Packer(CommandGetMeActiveUsers);
-			stream.Write(outputArray);
-			stream.Flush();
-		}
+		//List<string> ReadRegisterUsers(string _inputString)
+		//{
+		//	try
+		//	{
+		//		Server.BLL.Models.Content content = JsonSerializer.Deserialize<Server.BLL.Models.Content>(_inputString);
+		//		List<string> reg = new List<string>();
+		//		reg = JsonSerializer.Deserialize<List<string>>(content.Entity);
+		//		return reg;
+		//	}
+		//	catch (Exception ex)
+		//	{
+		//		//Console.WriteLine(ex);
+		//		return null;
+		//	}
+		//}
+
+		//void GiveMeActiveClients(Stream stream)
+		//{
+		//	byte[] outputArray = Server.BLL.Services.CourierServices.Packer(CommandGetMeActiveUsers);
+		//	stream.Write(outputArray);
+		//	stream.Flush();
+		//}
 
 		void SendMessageToServer(Stream stream, byte[] _arr)
 		{
 			stream.Write(_arr, 0, _arr.Length);
-			//stream.Flush();
+			stream.Flush();
 		}
 
 
@@ -486,6 +572,23 @@ namespace Client.ViewModels
 				}
 			}
 		}
+
+		public void CheckActiveClients()
+		{
+            foreach (var item in UICLients)
+            {
+				if (ActiveClients.Contains(item.Login))
+				{
+					item.IsActive = true;
+					//item.BackColor = "LawnGreen";
+				}
+				else
+				{
+					item.IsActive = false;
+					//item.BackColor = "White";
+				}
+			}
+        }
 
 		//public void RefreshUsers(ObservableCollection<UIClientModel> _clients)
 		//{
