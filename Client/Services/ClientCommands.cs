@@ -33,7 +33,7 @@ namespace Client.Services
 		const string CommandGetMeActiveUsers = "GetMeActiveUsers";
 		const string AnswerCatchUsers = "CatchUsers";
 		const string AnswerCatchActiveUsers = "CatchActiveUsers";
-		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes";
+		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes"; //Запрос непрочитанных сообщений(логин отправителя, количество, имеются или нет вложения)
 		const string AnswerCatchMessages = "CatchMessages";
 		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
 		const string AnswerMessageSendOk = "MessageSendOK";
@@ -89,6 +89,12 @@ namespace Client.Services
 			//_stream.Write(buffer, 0, buffer.Length);
 		}
 
+		public void RequestUnreadMessages(Stream _stream)
+		{
+			var buffer = CourierServices.Packer(CommandGiveMeUnReadMes);
+			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+		}
+
 		public List<string> ReadActiveClients(Courier _courier)
 		{
 			try
@@ -100,8 +106,11 @@ namespace Client.Services
                 Console.WriteLine(ex.Message);
                 throw;
 			}
-
 		}
 
+		public List<BLLMessageModel> ReadMessagesTextOnly(Courier _courier)
+		{
+			return JsonSerializer.Deserialize<List<BLLMessageModel>>(_courier.MessageText);
+		}
 	}
 }

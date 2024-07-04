@@ -55,7 +55,7 @@ namespace Server.BLL.Services
 			}
 		}
 
-		public void Registration(Courier _courier, Dictionary<int, string> _registredClients, List<ActiveClientLogin> _activeClients, TcpClient _tcpClient, Stream _stream)
+		public void Registration(Courier _courier, ref Dictionary<int, string> _registredClients, List<ActiveClientLogin> _activeClients, TcpClient _tcpClient, Stream _stream)
 		{
 			try
 			{
@@ -68,6 +68,7 @@ namespace Server.BLL.Services
 				if (registrationStatus)
 				{
 					_registredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
+					
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = newClient.Login });
 
 					var buffer = CourierServices.Packer(AnswerRegisterOk);
@@ -81,7 +82,9 @@ namespace Server.BLL.Services
 				{
 					var buffer = CourierServices.Packer(AnswerRegisterFailed);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
-					//_stream.Write(buffer, 0, buffer.Length);
+
+
+					_stream.Close();
 				}
 			}
 			catch (Exception ex)
@@ -99,14 +102,14 @@ namespace Server.BLL.Services
 				BLL.Services.AccountService service = new BLL.Services.AccountService();
 				KeyValuePair<string, string> AuthorizeUser = JsonSerializer.Deserialize<KeyValuePair<string, string>>(_courier.MessageText);
 				bool authorizeStatus = service.Authorize(AuthorizeUser.Key, AuthorizeUser.Value);
-				if (_activeClients.Any(c => c.Login == AuthorizeUser.Key)) authorizeStatus = false;
+				if (_activeClients.Any(c => c.Login == AuthorizeUser.Key) || _activeClients.Any(s => s.ClientStream == _stream)) authorizeStatus = false;
 
 				if (authorizeStatus)
 				{
 					_registredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = AuthorizeUser.Key });
 					BLLMessageModel nullmessage = new BLLMessageModel();
-					
+
 					byte[] buffer = CourierServices.Packer(AnswerAuthorizationOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 					//_stream.Write(buffer, 0, buffer.Length);
@@ -117,11 +120,14 @@ namespace Server.BLL.Services
 				{
 					var buffer = CourierServices.Packer(AnswerAuthorizationFailed);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
-					//_stream.Write(buffer, 0, buffer.Length);
+
+					//_tcpClient.Close();
+					//_stream.Close();
 				}
 			}
 			catch (Exception ex)
 			{
+				Console.WriteLine("!!!");
 				Console.WriteLine(ex.Message);
 				throw;
 			}
@@ -219,6 +225,35 @@ namespace Server.BLL.Services
 				Console.WriteLine(ex.Message);
 				throw;
 			}
+		}
+
+		public void SendUnreadMessagesForClient(Dictionary<int, string> _registredClients, List<ActiveClientLogin> _activeClients, TcpClient _tcpClient, Stream _stream)
+		{
+			try
+			{
+
+				string userReciverLogin = (_activeClients.First(c => c.ActiveClient == _tcpClient)).Login;
+				int userId = (_registredClients.First(l => l.Value == userReciverLogin)).Key;
+				MessageService service = new MessageService();
+				//Получен список непрочитанных сообщений с ссылками на вложения
+				List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, _registredClients);
+
+				Courier courier = new Courier();
+				courier.Header = AnswerCatchMessages;
+				courier.MessageText = JsonSerializer.Serialize(unreadMessages);
+				var buffer = Services.CourierServices.Packer(courier);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine("Не прочитаны сообщения для клиента");
+				Console.WriteLine(ex.Message);
+				throw;
+			}
+
+
+
 		}
 
 

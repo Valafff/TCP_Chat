@@ -112,7 +112,7 @@ namespace Server.BLL
 				}
 				else if (courier.Header == CommandRegisterMe)
 				{
-					commands.Registration(courier, RegistredClients, ActiveClients, tcpClient, stream);
+					commands.Registration(courier, ref RegistredClients, ActiveClients, tcpClient, stream);
 				}
 				else if (courier.Header == CommandAuthorizeMe)
 				{
@@ -130,143 +130,10 @@ namespace Server.BLL
 				{
 					commands.SendNewMessage(courier, RegistredClients, stream);
 				}
-
-
-
-				//Логика отправки, получения, запрос клиентов, запрос активных клиентов
-				//else if (WorkMode)
-				//{
-				//	BLLMessageModel IncomeMessage = new BLLMessageModel();
-				//	Dictionary<string, byte[]> fileData = new Dictionary<string, byte[]>();
-				//	//Courier courier = new Courier();
-				//	string command = "NoCommand";
-				//	try
-				//	{
-				//		//var stream2 = new MemoryStream(workLeveldata);
-				//		//var deserializer = new DataContractSerializer(typeof(Courier));
-				//		//courier = deserializer.ReadObject(stream2) as Courier;
-
-
-				//		//command = courier.Header;
-				//		//if (courier.SenderLogin != null) IncomeMessage.UserSender.Login = courier.SenderLogin;
-				//		//if (courier.ReciverLogin != null) IncomeMessage.UserReciver.Login = courier.ReciverLogin;
-				//		//if (courier.MessageText != null) IncomeMessage.MessageText = courier.MessageText;
-				//		//IncomeMessage.Date = courier.Date;
-				//		//IncomeMessage.IsRead = courier.IsRead;
-				//		//IncomeMessage.IsDelivered = courier.IsDelivered;
-				//		//fileData = courier.Attachments;
-
-
-
-
-				//		BLL.Services.AccountService service = new BLL.Services.AccountService();
-				//		//IncomeMessage = CourierServices.Unpacker(workLeveldata, out command, out fileData);
-				//	}
-				//	catch (Exception ex)
-				//	{
-				//		await Console.Out.WriteLineAsync(ex.Message);
-				//		await Console.Out.WriteLineAsync("Ошибка Message-сервиса: некорректная десериализация сообщения");
-				//		AuthtorizationMode = false;
-				//		WorkMode = false;
-				//	}
-
-				//	//Запрос на отправку активных клиентов для текущего соединения без текущего клиента
-				//	if (command == CommandGetMeActiveUsers)
-				//	{
-				//		PushActiveClients();
-				//	}
-
-				//	//Запрос на отправку зарегистрированнх клиентов с текущим клиентом
-				//	if (command == CommandGetMeUsers)
-				//	{
-				//		UpdateRegisterClients();
-				//	}
-
-				//	//Запрос на отправку непрочитанных сообщений 
-				//	if (command == CommandGiveMeUnReadMes)
-				//	{
-				//		PushUnreadMessages();
-				//	}
-				//	//Запрос на отправку сообщения другому пользователю
-				//	if (command == CommandMessageTo)
-				//	{
-				//		SendNewMessage(IncomeMessage, fileData);
-				//	}
-				//}
-				////Блок регистрации авторизации удаления аккаунта
-				//else if (AuthtorizationMode)
-				//{
-				//	Content AccountWorks = new Content();
-				//	BLL.Services.AccountService service = new BLL.Services.AccountService();
-				//	try
-				//	{
-				//		//AccountWorks = JsonSerializer.Deserialize<Content>(inputcommand);
-				//	}
-				//	catch (Exception ex)
-				//	{
-				//		await Console.Out.WriteLineAsync(ex.Message);
-				//		await Console.Out.WriteLineAsync("Ошибка Аккаунт-сервиса: некорректная десериализация клиента или клиент разорвал соединение");
-				//		AuthtorizationMode = false;
-				//	}
-				//	//РЕГИСТРАЦИЯ
-				//	if (AccountWorks.ServiceText == CommandRegisterMe)
-				//	{
-				//		BLLClientModel newClient = JsonSerializer.Deserialize<BLLClientModel>(Encoding.UTF8.GetString(AccountWorks.Entity));
-				//		bool registrationStatus = ClientDirectoryCreation.AddClientDirectory(newClient.Login);
-				//		if (registrationStatus)
-				//			registrationStatus = service.Register(newClient, RegistredClients);
-
-				//		if (registrationStatus)
-				//		{
-				//			RegistredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
-				//			ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = newClient.Login });
-
-				//			Content content = new Content() { ServiceText = AnswerRegisterOk, Entity = JsonSerializer.SerializeToUtf8Bytes(RegistredClients.Values) };
-				//			byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(content);
-
-				//			//byte[] buffer = Encoding.UTF8.GetBytes(AnswerRegisterOk);
-				//			await stream.WriteAsync(buffer, 0, buffer.Length);
-				//			await stream.FlushAsync();
-
-				//			WorkMode = true;
-				//			await Console.Out.WriteLineAsync($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
-				//			await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
-				//		}
-				//		else
-				//		{
-				//			byte[] buffer = Encoding.UTF8.GetBytes(AnswerRegisterFailed);
-				//			await stream.WriteAsync(buffer, 0, buffer.Length);
-				//			await stream.FlushAsync();
-				//		}
-				//	}
-
-				//	////АВТОРИЗАЦИЯ
-				//	//if (AccountWorks.ServiceText == CommandAuthorizeMe)
-				//	//{
-				//	//	KeyValuePair<string, string> AuthorizeUser = JsonSerializer.Deserialize<KeyValuePair<string, string>>(Encoding.UTF8.GetString(AccountWorks.Entity));
-				//	//	bool authorizeStatus = service.Authorize(AuthorizeUser.Key, AuthorizeUser.Value);
-				//	//	if (ActiveClients.Any(c => c.Login == AuthorizeUser.Key)) authorizeStatus = false;
-
-				//	//	if (authorizeStatus)
-				//	//	{
-				//	//		RegistredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
-				//	//		ActiveClients.Add(new ActiveClientLogin() { ActiveClient = tcpClient, Login = AuthorizeUser.Key });
-				//	//		Content content = new Content() { ServiceText = AnswerAuthorizationOk, Entity = JsonSerializer.SerializeToUtf8Bytes(RegistredClients.Values) };
-				//	//		byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(content);
-				//	//		//byte[] buffer = Encoding.UTF8.GetBytes(AnswerAuthorizationOk);
-				//	//		await stream.WriteAsync(buffer, 0, buffer.Length);
-				//	//		await stream.FlushAsync();
-				//	//		WorkMode = true;
-				//	//		await Console.Out.WriteLineAsync($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
-				//	//		await Console.Out.WriteLineAsync($"Активные клиенты {ActiveClients.Count}");
-				//	//	}
-				//	//	else
-				//	//	{
-				//	//		byte[] buffer = Encoding.UTF8.GetBytes(AnswerAuthorizationFailed);
-				//	//		await stream.WriteAsync(buffer, 0, buffer.Length);
-				//	//		await stream.FlushAsync();
-				//	//	}
-				//	//}
+				else if (courier.Header == CommandGiveMeUnReadMes)
+				{
+					commands.SendUnreadMessagesForClient(RegistredClients, ActiveClients, tcpClient, stream);
+				}
 
 				//	//УДАЛЕНИЕ КЛИЕНТА
 				//	if (AccountWorks.ServiceText == CommandDeleteMe)
@@ -473,7 +340,6 @@ namespace Server.BLL
 				//было Task.Delay(delay)
 				Task.Delay(delay).Wait();
 				lock (LockObj)
-				{
 					for (int i = 0; i < _clients.Count; i++)
 					{
 						if (!_clients[i].ActiveClient.Connected)
@@ -483,7 +349,6 @@ namespace Server.BLL
 							Console.WriteLine($"Активные клиенты {_clients.Count}");
 						}
 					}
-				}
 			} while (true);
 		}
 

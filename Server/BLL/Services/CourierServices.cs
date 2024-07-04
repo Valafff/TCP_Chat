@@ -33,12 +33,10 @@ namespace Server.BLL.Services
 				Console.WriteLine(ex.Message);
 				throw;
 			}
-
 		}
 
 		static public byte[] Packer(string _command)
 		{
-
 			BinaryFormatter formatter = new BinaryFormatter();
 			using (MemoryStream stream = new MemoryStream())//переводим объект в байты
 			{
@@ -49,16 +47,6 @@ namespace Server.BLL.Services
 				byte[] data = stream.ToArray();
 				return data;
 			}
-
-
-			//Courier courier = new Courier();
-			//courier.Header = _command;
-			//using var ms = new MemoryStream();
-			//Serializer.Serialize(ms, courier);
-			//return ms.ToArray();
-
-
-			//return JsonSerializer.SerializeToUtf8Bytes(courier);
 		}
 
 		static public byte[] Packer(BLLMessageModel _message, string _command, Dictionary<string, string> _namesAndPaths = null)
@@ -96,17 +84,6 @@ namespace Server.BLL.Services
 					byte[] data = stream.ToArray();
 					return data;
 				}
-
-
-				//byte[] data;
-				//using var ms = new MemoryStream();
-				//Serializer.Serialize(ms, courier );
-				//data = ms.ToArray();
-				//return data;
-
-
-				//JsonSerializer
-				//return JsonSerializer.SerializeToUtf8Bytes(courier);
 			}
 			catch (Exception ex)
 			{
@@ -115,9 +92,6 @@ namespace Server.BLL.Services
 			}
 			
 		}
-
-
-
 
 
 		//Распаковщик сообщения. На входе объект для распаковки, на выходе модель BLL с путями, записанные в директорию с клиентом контент если есть, команда 
@@ -174,8 +148,7 @@ namespace Server.BLL.Services
 				
 				
 				
-				
-				
+	
 				_fileDataList = fileDataList;
 				return messages;
 			}
@@ -183,62 +156,8 @@ namespace Server.BLL.Services
 			{
 				Console.WriteLine(ex.Message);
 				throw;
-
 			}
 
-		}
-
-
-		public class Serialize_data<T>
-		{
-			BinaryFormatter formatter = new BinaryFormatter();
-			public byte[] GetBytesFromList(List<T> list)
-			{
-				using (MemoryStream stream = new MemoryStream())//переводим лист чего угодно в байты
-				{
-					formatter = new BinaryFormatter();
-					formatter.Serialize(stream, list);
-					byte[] byffer = stream.ToArray();
-					return byffer;
-				}
-
-			}
-			public byte[] GetBytesFromObj(T obj)
-			{
-				using (MemoryStream stream = new MemoryStream())//переводим объект в байты
-				{
-					formatter = new BinaryFormatter();
-					formatter.Serialize(stream, obj);
-					byte[] byffer = stream.ToArray();
-					return byffer;
-				}
-			}
-		}
-
-		public class Deserialize_data<T>
-		{
-			BinaryFormatter formatter = new BinaryFormatter();
-			//methods: получить лист юзеров
-			public T GetObgFromBytes(byte[] bytes)
-			{
-				using (MemoryStream stream = new MemoryStream(bytes))
-				{
-					formatter = new BinaryFormatter();
-					T obj = (T)formatter.Deserialize(stream);
-					return obj;
-				}
-			}
-			//получить лист сообщений
-			public List<T> GetListFromBytes(byte[] bytes)
-			{
-				using (MemoryStream stream = new MemoryStream(bytes))
-				{
-					List<T> list = new List<T>();
-					formatter = new BinaryFormatter();
-					list = (List<T>)formatter.Deserialize(stream);
-					return list;
-				}
-			}
 		}
 	}
 }

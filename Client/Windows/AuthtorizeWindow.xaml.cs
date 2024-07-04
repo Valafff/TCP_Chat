@@ -21,13 +21,21 @@ namespace Client.Windows
 	/// </summary>
 	public partial class AuthtorizeWindow : Window
 	{
-		MainMenu mainMenu;
+		MainMenu main;
 		public AuthtorizeWindow(MainMenu _main )
 		{
 			InitializeComponent();
-			this.mainMenu = _main;
-			DataContext = this.mainMenu;
-			mainMenu.CloseAuthWindowEvent += CloseMe;
+			this.main = _main;
+			DataContext = this.main;
+			main.CloseAuthWindowEvent += CloseMe;
+			TbUserLogin.Text = "";
+			TbUserPassword.Password = "";
+
+			main.UICLients.Clear();
+			main.ActiveClients.Clear();
+			main.UnreadMessagesTextOnly.Clear();
+			main.AllMessagesList.Clear();
+			main.UserConfigData.AutoAuthtorization = false;
 		}
 
 		private void Bt_Authtorize_Click(object sender, RoutedEventArgs e)
@@ -42,8 +50,10 @@ namespace Client.Windows
 			}
 			else
 			{
+				main.Disconnect();
+				main.ReloadConnection();
 				(DataContext as MainMenu).BLLClient.Password = TbUserPassword.Password;
-				mainMenu.Authtorizeme.Execute(mainMenu);
+				main.Authtorizeme.Execute(main);
 			}
 		}
 		void CloseMe()

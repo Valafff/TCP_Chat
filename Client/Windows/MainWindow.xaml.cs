@@ -81,15 +81,17 @@ namespace Client
 			Close();
 		}
 
+		//Глючит
 		private void MenuItem_Click_ReloadConnection(object sender, RoutedEventArgs e)
 		{
-			main.ReloadConnection();
+			//main.ReloadConnection();
 		}
 
 		private void MenuItem_Click_Authtorize(object sender, RoutedEventArgs e)
 		{
 			AuthtorizeWindow window = new AuthtorizeWindow(main);
 			window.ShowDialog();
+			//UpdateClients();
 		}
 
 		private void Button_Client_Click(object sender, RoutedEventArgs e)
@@ -108,18 +110,20 @@ namespace Client
 			main.BLLClient.FirstName = "";
 			main.BLLClient.SecondName = "";
 			main.UserConfigData.AutoAuthtorization = false;
-			main.ReloadConnection();
+			//main.ReloadConnection();
 			RegistrationWindow window = new RegistrationWindow(main);
 			window.ShowDialog();
 		}
 
 		void UpdateClients()
 		{
+
 			Application.Current.Dispatcher.Invoke(() =>
 			{
+				ClientsStack.Children.Clear();
 				foreach (var item in main.UICLients)
 				{
-					Button bt = new Button() { Content = $"{item.ResultString}", BorderBrush = Brushes.White,  Background = item.IsActive == true ? Brushes.LawnGreen : Brushes.White };
+					Button bt = new Button() { Name = $"bt_{item.Login}",  Content = $"{item.ResultString}", BorderBrush = Brushes.White,  Background = item.IsActive == true ? Brushes.LawnGreen : Brushes.White };
 					bt.Click += Button_Client_Click;
 					bt.HorizontalAlignment = HorizontalAlignment.Left;
 					Grid.SetRow(bt, 0);
@@ -129,5 +133,22 @@ namespace Client
 
 		}
 
+		private void MenuItem_Click_Connect(object sender, RoutedEventArgs e)
+		{
+			main.UICLients.Clear();
+			main.ActiveClients.Clear();
+			main.UnreadMessagesTextOnly.Clear();
+			main.AllMessagesList.Clear();
+			main.ReloadConnection();
+		}
+
+		private void MenuItem_Click_Disconect(object sender, RoutedEventArgs e)
+		{
+			main.UICLients.Clear();
+			main.ActiveClients.Clear();
+			main.UnreadMessagesTextOnly.Clear();
+			main.AllMessagesList.Clear();
+			main.Disconnect();
+		}
 	}
 }

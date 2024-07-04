@@ -32,22 +32,19 @@ namespace Client.Windows
 		public ChatRoom(MainMenu _main, UIClientModel _reciver, string _senderLogin)
 		{
 			this.main = _main;
+			//!!!Получатель тот кому текущий клиент пишет письмо! При чтении сообщений он sender как бы
 			UIClientReciverModel = _reciver;
 			InitializeComponent();
 			DataContext = main;
 			Title = "Сообщение пользователю " + UIClientReciverModel.Login;
 			SenderLogin = _senderLogin;
-			if (main.AllMessagesList.Keys.Contains(UIClientReciverModel))
-			{
-				Correspondence = main.AllMessagesList[UIClientReciverModel];
-				ReadAllMessages();
-			}
+			if (main.AllMessagesList.Keys.Contains(UIClientReciverModel)) Correspondence = main.AllMessagesList[UIClientReciverModel];
+			ReadAllMessages();
 
 		}
 
 		private void Button_FileLoad_Click(object sender, RoutedEventArgs e)
 		{
-			//Прописать логику создания папки и помещения туда необходимого контента
 			OpenFileDialog attachments = new OpenFileDialog();
 			attachments.Filter = "All files|*.*";
 			if (attachments.ShowDialog() == true)
@@ -88,14 +85,14 @@ namespace Client.Windows
 				DirectoryInfo directory = new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Clients\\");
 				directory.CreateSubdirectory($"{UIClientReciverModel.Login}\\");
 			}
-			main.OutputMessage.UserReciver.Login = UIClientReciverModel.Login;
-			main.OutputMessage.UserSender.Login = SenderLogin;
-			main.OutputMessage.MessageText = TB_MessegeTo.Text;
-			main.OutputMessage.Date = DateTime.Now;
-			main.OutputMessage.IsRead = 0;
-			main.OutputMessage.IsDelivered = 0;
+			main.ArchhiveMessages.UserReciver.Login = UIClientReciverModel.Login;
+			main.ArchhiveMessages.UserSender.Login = SenderLogin;
+			main.ArchhiveMessages.MessageText = TB_MessegeTo.Text;
+			main.ArchhiveMessages.Date = DateTime.Now;
+			main.ArchhiveMessages.IsRead = 0;
+			main.ArchhiveMessages.IsDelivered = 0;
 			//Если файл есть - добавляется новое сообщение с датой.
-			string outputMessageLog = $"{main.OutputMessage.Date}\t{SenderLogin}:\t{main.OutputMessage.MessageText}";
+			string outputMessageLog = $"{main.ArchhiveMessages.Date}\t{SenderLogin}:\t{main.ArchhiveMessages.MessageText}";
 			using (var sw = new StreamWriter(filePath, true, Encoding.UTF8))
 			{
 				sw.WriteLine(outputMessageLog);
@@ -103,9 +100,9 @@ namespace Client.Windows
 			}
 			main.PushMessage.Execute(main);
 
-			TextBlock message = new TextBlock(){Text = $"{SenderLogin}:\t{main.OutputMessage.MessageText}"};
+			TextBlock message = new TextBlock() { Text = $"{SenderLogin}:\t{main.ArchhiveMessages.MessageText}" };
 			message.HorizontalAlignment = HorizontalAlignment.Right;
-			if ($"{SenderLogin}:\t{main.OutputMessage.MessageText}".Length > 20)
+			if ($"{SenderLogin}:\t{main.ArchhiveMessages.MessageText}".Length > 20)
 			{
 				message.Width = 250;
 			}
@@ -114,10 +111,15 @@ namespace Client.Windows
 			sp_Messeges.Children.Add(message);
 			//main.RefreshUsers(main.UICLients);
 			ScrollDown();
+
+
 		}
+
 
 		void ReadAllMessages()
 		{
+			if (Correspondence != null)
+			//Сообщения из архива
 			foreach (var item in Correspondence)
 			{
 				var mes = item.Remove(0, 19);
@@ -136,16 +138,42 @@ namespace Client.Windows
 				{
 					message.HorizontalAlignment = HorizontalAlignment.Left;
 				}
-
 				Grid.SetRow(message, 1);
 				sp_Messeges.Children.Add(message);
 			}
+			//Непрочитанные сообщения
+			var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
+			if (newMessages.Count > 0)
+			{
+				TextBlock m = new TextBlock() { Text = "Новые сообщения" };
+				Grid.SetRow(m, 1);
+				sp_Messeges.Children.Add(m);
+				foreach (var item in newMessages)
+				{
+					if (item.MessageContentNames.Count > 0)
+					{
+
+					}
+					else
+					{
+						TextBlock message = new TextBlock() {Text = item.MessageText};
+						Grid.SetRow(message, 1);
+						sp_Messeges.Children.Add(message);
+					}
+				}
+			}
+
+
+
+
+
+
 			ScrollDown();
 		}
 
-		void  ScrollDown()
+		void ScrollDown()
 		{
-            scrollMessage.ScrollToVerticalOffset(int.MaxValue);
+			scrollMessage.ScrollToVerticalOffset(int.MaxValue);
 		}
 
 	}

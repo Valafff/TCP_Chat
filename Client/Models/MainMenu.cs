@@ -49,7 +49,7 @@ namespace Client.ViewModels
 		const string CommandGetMeActiveUsers = "GetMeActiveUsers";
 		const string AnswerCatchUsers = "CatchUsers";
 		const string AnswerCatchActiveUsers = "CatchActiveUsers";
-		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes";
+		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes"; //Запрос непрочитанных сообщений(логин отправителя, количество, имеются или нет вложения)
 		const string AnswerCatchMessages = "CatchMessages";
 		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
 		const string AnswerMessageSendOk = "MessageSendOK";
@@ -67,6 +67,7 @@ namespace Client.ViewModels
 		IPAddress SERVERIPADDRESS;
 		int SERVERPORT;
 
+		public List<BLLMessageModel> UnreadMessagesTextOnly;
 
 		//UIClientModel _uiclient;
 		//      public UIClientModel UIClient 
@@ -75,12 +76,11 @@ namespace Client.ViewModels
 		//	set => SetField(ref _uiclient, value); 
 		//}
 
-
-		Server.BLL.Models.BLLMessageModel _outputMessage;
-		public Server.BLL.Models.BLLMessageModel OutputMessage
+		Server.BLL.Models.BLLMessageModel _archHiveMessages;
+		public Server.BLL.Models.BLLMessageModel ArchhiveMessages
 		{
-			get => _outputMessage;
-			set => SetField(ref _outputMessage, value);
+			get => _archHiveMessages;
+			set => SetField(ref _archHiveMessages, value);
 		}
 
 		Dictionary<string, string> _loadingAttachments;
@@ -107,7 +107,7 @@ namespace Client.ViewModels
 		}
 		//Вспомогательные поля для UICLients
 		List<string> registredClients = new List<string>();
-		List<string> ActiveClients;
+		public List<string> ActiveClients;
 
 		string _title;
 		public string Title
@@ -133,7 +133,7 @@ namespace Client.ViewModels
 			set => SetField(ref _bllClientModel, value);
 		}
 
-		//Флаг устанавливающийся при регистрации - если true -  пароль и логин пользователя записываются в конфиг. При запуске клиента авторизация происходит атоматически
+		//Флаг устанавливающийся при регистрации - если true -  пароль и логин пользователя записываются в конфиг. При запуске клиента авторизация происходит автоматически
 		bool _autoInput;
 		public bool AutoAuthtorization
 		{
@@ -150,10 +150,11 @@ namespace Client.ViewModels
 			Title = "МиниЧат";
 			BLLClient = new Server.BLL.Models.BLLClientModel();
 			UICLients = new ObservableCollection<UIClientModel>();
-			OutputMessage = new Server.BLL.Models.BLLMessageModel() { UserReciver = new Server.BLL.Models.BLLSlimClientModel(), UserSender = new Server.BLL.Models.BLLSlimClientModel(), MessageContentNames = new List<string>() };
+			ArchhiveMessages = new Server.BLL.Models.BLLMessageModel() { UserReciver = new Server.BLL.Models.BLLSlimClientModel(), UserSender = new Server.BLL.Models.BLLSlimClientModel(), MessageContentNames = new List<string>() };
 			AllMessagesList = new Dictionary<UIClientModel, List<string>>();
 			LoadingAttachments_KeyNameValuePath = new Dictionary<string, string>();
 			ActiveClients = new List<string>();
+			UnreadMessagesTextOnly = new List<BLLMessageModel>();
 			SendRegOrAuthClient += RegistrationOrAuthtorize;
 
 
@@ -168,7 +169,7 @@ namespace Client.ViewModels
 					var buffer = Server.BLL.Services.CourierServices.Packer(courier);
 					SendRegOrAuthClient(buffer);
 				},
-				canExecute => AuthtorizationMode == true
+				canExecute => true
 				);
 
 			//Update
@@ -180,17 +181,17 @@ namespace Client.ViewModels
 					var buffer = Server.BLL.Services.CourierServices.Packer(courier);
 					SendRegOrAuthClient(buffer);
 				},
-				canExecute => AuthtorizationMode == true
+				canExecute => true
 				);
 
 			PushMessage = new Lambda(
 				execute: _ =>
 				{
-					AllMessagesList = ReadAllMessagesFromMemory(UICLients);
-					byte[] arr = Server.BLL.Services.CourierServices.Packer(OutputMessage, CommandMessageTo, LoadingAttachments_KeyNameValuePath);
+					AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
+					byte[] arr = Server.BLL.Services.CourierServices.Packer(ArchhiveMessages, CommandMessageTo, LoadingAttachments_KeyNameValuePath);
 					SendMessageToServer(STREAM, arr);
 				},
-				canExecute => OutputMessage.UserReciver != null
+				canExecute => ArchhiveMessages.UserReciver != null
 				);
 		}
 
@@ -249,6 +250,14 @@ namespace Client.ViewModels
 						if (courier.Header == AnswerAuthorizationOk || courier.Header == AnswerRegisterOk)
 						{
 							commands.RequesRegistredClients(stream);
+							if (CloseAuthWindowEvent != null)
+							{
+								CloseAuthWindowEvent();
+							}
+							if (CloseRegistrationWindowEvent != null)
+							{
+								CloseRegistrationWindowEvent();
+							}
 						}
 						if (courier.Header == AnswerCatchUsers)
 						{
@@ -265,21 +274,58 @@ namespace Client.ViewModels
 						if (courier.Header == AnswerCatchActiveUsers)
 						{
 							ActiveClients = commands.ReadActiveClients(courier);
+						}
+						if (courier.Header == AnswerCatchActiveUsers)
+						{
+							//Запрос непрочитанных сообщений(логин отправителя, количество, имеются или нет вложения)
+							commands.RequestUnreadMessages(stream);
+						}
+						if (courier.Header == AnswerCatchMessages)
+						{
+							UnreadMessagesTextOnly = commands.ReadMessagesTextOnly(courier);
 							CheckActiveClients();
-							ResultStringBuilder(UICLients);
+							AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
+							ResultStringBuilder(UICLients, UnreadMessagesTextOnly);
 							//Обновление UI
 							UpdateWindowsWithClients();
 						}
 						if (courier.Header == AnswerMessageSendOk)
 						{
-							MessageBox.Show("Сообщение отправлено");
+							AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
+							ResultStringBuilder(UICLients, UnreadMessagesTextOnly);
+							UpdateWindowsWithClients();
+							//MessageBox.Show("Сообщение отправлено");
 						}
 						if (courier.Header == AnswerMessageSendFailed)
 						{
 							MessageBox.Show("Сообщение не отправлено");
 						}
 
+						if (courier.Header == "NoCommand")
+						{
+                            Console.WriteLine("Подключение потеряно");
+                            break;
+						}
+
 						//Дай мне список непрочитанных сообщений
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -446,9 +492,6 @@ namespace Client.ViewModels
 			try
 			{
 				Server.Tools.DataToBinaryWriter.WriteData(STREAM, content);
-
-				//STREAM.Write(content);
-				//STREAM.Flush();
 			}
 			catch (Exception ex)
 			{
@@ -457,14 +500,30 @@ namespace Client.ViewModels
 			}
 		}
 
-		//Работает не корректно исправить
+		//Работает не корректно
 		public void ReloadConnection()
 		{
-			tcpClient.Close();
+			TcpClient t = new TcpClient();
+			if (tcpClient != null)
+			{
+				t = tcpClient;
+			}
 			Task.Delay(100).Wait();
 			tcpClient = new TcpClient();
 			TCPClientWork(SERVERIPADDRESS, SERVERPORT);
 			Task.Run(new Action(() => NetworkStreamReader()));
+			//if (t != null)
+			//{
+			//	t.Close();
+			//}
+		}
+
+		public void Disconnect()
+		{
+			if (tcpClient != null)
+			{
+				tcpClient.Close();
+			}
 		}
 
 		//public void ConnectWithNewrop(BLLClientModel _client, UserConfig _userConfig)
@@ -504,13 +563,11 @@ namespace Client.ViewModels
 		void SendMessageToServer(Stream stream, byte[] _arr)
 		{
 			Server.Tools.DataToBinaryWriter.WriteData(stream, _arr);
-			//stream.Write(_arr, 0, _arr.Length);
-			//stream.Flush();
 		}
 
 
 		//Получение списка всех сообщений от всех клиентов
-		Dictionary<UIClientModel, List<string>> ReadAllMessagesFromMemory(ObservableCollection<UIClientModel> _clients)
+		Dictionary<UIClientModel, List<string>> ReadAllMessagesFromUserMemory(ObservableCollection<UIClientModel> _clients)
 		{
 			Dictionary<UIClientModel, List<string>> dict = new Dictionary<UIClientModel, List<string>>();
 			if (!Directory.Exists(Directory.GetCurrentDirectory() + $"\\Clients\\"))
@@ -542,7 +599,7 @@ namespace Client.ViewModels
 		}
 
 		//_messagedata подгружаются из списка сообщений txt на диске 
-		void ResultStringBuilder(ObservableCollection<UIClientModel> _clients)
+		void ResultStringBuilder(ObservableCollection<UIClientModel> _clients, List<BLLMessageModel> _messages)
 		{
 			foreach (var item in _clients)
 			{
@@ -557,15 +614,16 @@ namespace Client.ViewModels
 					{
 						countMessages = AllMessagesList[item].Count;
 					}
-					item.ResultString = $"{item.Login} Всего сообщений {countMessages} Был в сети {item.LastVisit}";
+					var newMessages = _messages.FindAll(l => l.UserSender.Login == item.Login);
+					item.ResultString = $"{item.Login} Новые сообщения: {newMessages.Count} \t Всего сообщений {countMessages}";
 				}
 			}
 		}
 
 		public void CheckActiveClients()
 		{
-            foreach (var item in UICLients)
-            {
+			foreach (var item in UICLients)
+			{
 				if (ActiveClients.Contains(item.Login))
 				{
 					item.IsActive = true;
@@ -577,7 +635,7 @@ namespace Client.ViewModels
 					//item.BackColor = "White";
 				}
 			}
-        }
+		}
 
 		//public void RefreshUsers(ObservableCollection<UIClientModel> _clients)
 		//{

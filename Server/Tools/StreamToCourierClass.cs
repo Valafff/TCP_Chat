@@ -14,11 +14,11 @@ namespace Server.Tools
 {
 	public static class StreamToCourierClass
 	{
+		const int DefaultBufferSize = 1024;
 		const int buffer10MB = 1048576;
 		const int buffer100MB = 1073741824;
-		public static Courier StreamToCourier(NetworkStream stream, int buffersize = buffer10MB)
+		public static Courier StreamToCourier(NetworkStream stream)
 		{
-
 
 			try
 			{
@@ -28,33 +28,12 @@ namespace Server.Tools
 				using MemoryStream bms = new MemoryStream(bytes);
 				BinaryFormatter bformatter = new BinaryFormatter();
 				return (Courier)bformatter.Deserialize(bms);
-
-				//using (MemoryStream ms = new MemoryStream())
-				//{
-				//	byte[] b = new byte[buffersize];
-				//	int read;
-				//	do
-				//	{
-				//		read = stream.Read(b, 0, b.Length);
-				//		ms.Write(b, 0, read);
-				//	}
-				//	while (stream.DataAvailable);
-
-
-
-				//	Console.WriteLine(ms.ToArray().Length);
-				//	ms.Position = 0;
-				//	BinaryFormatter formatter = new BinaryFormatter();
-				//	return (Courier)formatter.Deserialize(ms);
-				//}
 			}
 			catch (Exception ex)
 			{
-				Console.WriteLine(ex.Message);
-				throw;
+				Console.WriteLine($"{ex.Message} Ошибка чтения потока на входе");
+				return new Courier() { Header = "NoCommand" };
 			}
-
-
 
 			//using ProtoBuf;
 			//try

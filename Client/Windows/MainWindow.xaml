@@ -17,11 +17,14 @@
                 <MenuItem Header="Новая регистрация" Click="MenuItem_NewRegistration_Click"/>
                 <MenuItem Header="Авторизация" Click="MenuItem_Click_Authtorize"/>
                 <MenuItem Header="Переподключение" Click="MenuItem_Click_ReloadConnection"/>
+                <MenuItem Header="Подключиться" Click="MenuItem_Click_Connect"/>
+                <MenuItem Header="Отключиться" Click="MenuItem_Click_Disconect"/>
                 <MenuItem Header="Выход" Click="MenuItem_Click_CloseChat"/>
             </MenuItem>
             <MenuItem Header="Настройки">
                 <MenuItem Header ="Настройки подключения"/>
                 <MenuItem Header="Настройки клиента"/>
+
             </MenuItem>
         </Menu>
         <Grid>

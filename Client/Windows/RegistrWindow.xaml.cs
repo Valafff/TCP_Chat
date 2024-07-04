@@ -20,13 +20,19 @@ namespace Client.Windows
 {
 	public partial class RegistrationWindow : Window
 	{
-		MainMenu mainMenu;
+		MainMenu main;
 		public RegistrationWindow(MainMenu mainmenu)
 		{
 			InitializeComponent();
-			this.mainMenu = mainmenu;
-			DataContext = this.mainMenu;
-			mainMenu.CloseRegistrationWindowEvent += CloseMe;
+			this.main = mainmenu;
+			DataContext = this.main;
+			main.CloseRegistrationWindowEvent += CloseMe;
+
+			main.UICLients.Clear();
+			main.ActiveClients.Clear();
+			main.UnreadMessagesTextOnly.Clear();
+			main.AllMessagesList.Clear();
+			main.UserConfigData.AutoAuthtorization = false;
 		}
 
 		private void Bt_Registration_Click(object sender, RoutedEventArgs e)
@@ -41,12 +47,10 @@ namespace Client.Windows
 			}
 			else
 			{
+				main.Disconnect();
+				main.ReloadConnection();
 				(DataContext as MainMenu).BLLClient.Password = TbUserPassword.Password;
-
-				mainMenu.RegistrMe.Execute(mainMenu);
-
-				//Lambda registr = mainMenu.RegistrMe;
-				//registr.Execute(this);
+				main.RegistrMe.Execute(main);
 			}
 
 		}
