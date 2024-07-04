@@ -97,6 +97,7 @@ namespace Server.BLL
 		{
 			NetworkStream stream = tcpClient.GetStream();
 
+
 			bool AuthtorizationMode = false;
 			bool WorkMode = false;
 			while (true)

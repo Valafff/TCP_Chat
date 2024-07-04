@@ -7,6 +7,8 @@ using System.Text;
 using System.Threading.Tasks;
 using ProtoBuf;
 using Server.BLL.Models;
+using System.Net.Sockets;
+using System.Reflection.PortableExecutable;
 
 namespace Server.Tools
 {
@@ -14,31 +16,37 @@ namespace Server.Tools
 	{
 		const int buffer10MB = 1048576;
 		const int buffer100MB = 1073741824;
-		public static Courier StreamToCourier(Stream stream, int buffersize = 1024)
+		public static Courier StreamToCourier(NetworkStream stream, int buffersize = buffer10MB)
 		{
+
+
 			try
 			{
-				using (MemoryStream ms = new MemoryStream())
-				{
-					byte[] b = new byte[buffersize];
-					int read;
-					while ((read = stream.Read(b, 0, b.Length)) > 0)
-					{
-						if (read < buffersize)
-						{
-							var data = b[0..read];
-							ms.Write(data, 0, read);
-							break;
-						}
-						else
-						{
-							ms.Write(b, 0, b.Length);
-						}
-					}
-					ms.Position = 0;
-					BinaryFormatter formatter = new BinaryFormatter();
-					return (Courier)formatter.Deserialize(ms);
-				}
+				BinaryReader reader = new BinaryReader(stream, Encoding.UTF8, true);
+				int size = reader.ReadInt32();
+				byte[] bytes = reader.ReadBytes(size);
+				using MemoryStream bms = new MemoryStream(bytes);
+				BinaryFormatter bformatter = new BinaryFormatter();
+				return (Courier)bformatter.Deserialize(bms);
+
+				//using (MemoryStream ms = new MemoryStream())
+				//{
+				//	byte[] b = new byte[buffersize];
+				//	int read;
+				//	do
+				//	{
+				//		read = stream.Read(b, 0, b.Length);
+				//		ms.Write(b, 0, read);
+				//	}
+				//	while (stream.DataAvailable);
+
+
+
+				//	Console.WriteLine(ms.ToArray().Length);
+				//	ms.Position = 0;
+				//	BinaryFormatter formatter = new BinaryFormatter();
+				//	return (Courier)formatter.Deserialize(ms);
+				//}
 			}
 			catch (Exception ex)
 			{

@@ -43,7 +43,14 @@ namespace Client.Services
 		public void HelloServer(Stream _stream)
 		{
 			var data = CourierServices.Packer(CommandHelloMsr);
-			_stream.Write(data);
+			Server.Tools.DataToBinaryWriter.WriteData(_stream, data);
+
+
+			//BinaryWriter writer = new BinaryWriter(_stream);
+			//writer.Write(data.Length);
+			//writer.Write(data);
+
+			//_stream.Write(data);
 		}
 
 		public void AutoAuthtoeize(BLLClientModel _clientmodel, MainMenu _main, UserConfig _userConfig)
@@ -56,7 +63,9 @@ namespace Client.Services
 		public void RequesRegistredClients(Stream _stream)
 		{
 			var buffer = CourierServices.Packer(CommandGetMeUsers);
-			_stream.Write(buffer, 0, buffer.Length);
+			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+
+			//_stream.Write(buffer, 0, buffer.Length);
 		}
 
 		public List<string> ReadRegistredClients(Courier _courier)
@@ -75,7 +84,9 @@ namespace Client.Services
 		public void RequestActiveUsers(Stream _stream)
 		{
 			var buffer = CourierServices.Packer(CommandGetMeActiveUsers);
-			_stream.Write(buffer, 0, buffer.Length);
+			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+
+			//_stream.Write(buffer, 0, buffer.Length);
 		}
 
 		public List<string> ReadActiveClients(Courier _courier)

@@ -44,7 +44,9 @@ namespace Server.BLL.Services
 			{
 				Console.WriteLine($"Попытка подключения {_tcpClient.Client.RemoteEndPoint} рукопожатие OK\t{DateTime.Now}");
 				var buffer = CourierServices.Packer(AnswerHelloUser);
-				_stream.Write(buffer, 0, buffer.Length);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+
+				//_stream.Write(buffer, 0, buffer.Length);
 				//stream.Flush();
 			}
 			catch (Exception ex)
@@ -69,7 +71,8 @@ namespace Server.BLL.Services
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = newClient.Login });
 
 					var buffer = CourierServices.Packer(AnswerRegisterOk);
-					_stream.Write(buffer, 0, buffer.Length);
+					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+					//_stream.Write(buffer, 0, buffer.Length);
 
 					Console.WriteLine($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");
@@ -77,7 +80,8 @@ namespace Server.BLL.Services
 				else
 				{
 					var buffer = CourierServices.Packer(AnswerRegisterFailed);
-					_stream.Write(buffer, 0, buffer.Length);
+					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+					//_stream.Write(buffer, 0, buffer.Length);
 				}
 			}
 			catch (Exception ex)
@@ -104,14 +108,16 @@ namespace Server.BLL.Services
 					BLLMessageModel nullmessage = new BLLMessageModel();
 					
 					byte[] buffer = CourierServices.Packer(AnswerAuthorizationOk);
-					_stream.Write(buffer, 0, buffer.Length);
+					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+					//_stream.Write(buffer, 0, buffer.Length);
 					Console.WriteLine($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");
 				}
 				else
 				{
 					var buffer = CourierServices.Packer(AnswerAuthorizationFailed);
-					_stream.Write(buffer, 0, buffer.Length);
+					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+					//_stream.Write(buffer, 0, buffer.Length);
 				}
 			}
 			catch (Exception ex)
@@ -130,7 +136,8 @@ namespace Server.BLL.Services
 				courier.Header = AnswerCatchUsers;
 				courier.MessageText = JsonSerializer.Serialize(_registredClients.Values);
 				var buffer = Services.CourierServices.Packer(courier);
-				_stream.Write(buffer, 0, buffer.Length);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+				//_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
 			{
@@ -152,7 +159,8 @@ namespace Server.BLL.Services
 				courier.Header = AnswerCatchActiveUsers;
 				courier.MessageText = JsonSerializer.Serialize(ActivClientsLogins);
 				var buffer = CourierServices.Packer(courier);
-				_stream.Write(buffer, 0, buffer.Length);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+				//_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
 			{
@@ -200,12 +208,14 @@ namespace Server.BLL.Services
 
 
 				byte[] buffer = CourierServices.Packer(AnswerMessageSendOk);
-				_stream.Write(buffer, 0, buffer.Length);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+				//_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
 			{
 				byte[] buffer = CourierServices.Packer(AnswerMessageSendFailed);
-				_stream.Write(buffer, 0, buffer.Length);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+				//_stream.Write(buffer, 0, buffer.Length);
 				Console.WriteLine(ex.Message);
 				throw;
 			}

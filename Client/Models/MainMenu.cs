@@ -375,60 +375,54 @@ namespace Client.ViewModels
 							//}
 							//Не обработано событие удаления клиента
 						}
-						else if (WorkMode)
-						{
-							Server.BLL.Models.BLLMessageModel IncomeMessage = new Server.BLL.Models.BLLMessageModel();
-							string command = "NoCommand";
-							try
-							{
-								//Services.AccountService service = new Services.AccountService();
-								//IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command, out Dictionary<string, byte[]> nulldata);
-							}
-							catch (Exception ex)
-							{
-								Console.WriteLine(ex.Message);
-								Console.WriteLine("Ошибка при чтении сообщения: некорректная десериализация сообщения");
-								AuthtorizationMode = false;
-								WorkMode = false;
-							}
+						//else if (WorkMode)
+						//{
+						//	Server.BLL.Models.BLLMessageModel IncomeMessage = new Server.BLL.Models.BLLMessageModel();
+						//	string command = "NoCommand";
+						//	try
+						//	{
+						//		//Services.AccountService service = new Services.AccountService();
+						//		//IncomeMessage = Services.CourierServices.Unpacker(workLeveldata, out command, out Dictionary<string, byte[]> nulldata);
+						//	}
+						//	catch (Exception ex)
+						//	{
+						//		Console.WriteLine(ex.Message);
+						//		Console.WriteLine("Ошибка при чтении сообщения: некорректная десериализация сообщения");
+						//		AuthtorizationMode = false;
+						//		WorkMode = false;
+						//	}
 
-							if (command == AnswerCatchActiveUsers)
-							{
-								AllMessagesList = ReadAllMessagesFromMemory(UICLients);
+						//	if (command == AnswerCatchActiveUsers)
+						//	{
+						//		AllMessagesList = ReadAllMessagesFromMemory(UICLients);
 
-								if (IncomeMessage.MessageText != null)
-								{
-									ActiveClients = JsonSerializer.Deserialize<List<string>>(IncomeMessage.MessageText);
-								}
-								foreach (var item in UICLients)
-								{
-									if (ActiveClients.Contains(item.Login))
-									{
-										item.IsActive = true;
-										//item.BackColor = "LawnGreen";
-									}
-									else
-									{
-										item.IsActive = false;
-										//item.BackColor = "White";
-									}
-								}
+						//		if (IncomeMessage.MessageText != null)
+						//		{
+						//			ActiveClients = JsonSerializer.Deserialize<List<string>>(IncomeMessage.MessageText);
+						//		}
+						//		foreach (var item in UICLients)
+						//		{
+						//			if (ActiveClients.Contains(item.Login))
+						//			{
+						//				item.IsActive = true;
+						//				//item.BackColor = "LawnGreen";
+						//			}
+						//			else
+						//			{
+						//				item.IsActive = false;
+						//				//item.BackColor = "White";
+						//			}
+						//		}
 
-								//Первый запрос непрочитанных сообщений
-								Server.BLL.Models.Courier courier_OLD = new Server.BLL.Models.Courier();
-								courier.Header = CommandGiveMeUnReadMes;
-								byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
-								stream.Write(buffer, 0, buffer.Length);
-								stream.Flush();
+						//		//Первый запрос непрочитанных сообщений
+						//		Server.BLL.Models.Courier courier_OLD = new Server.BLL.Models.Courier();
+						//		courier.Header = CommandGiveMeUnReadMes;
+						//		byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
+						//		stream.Write(buffer, 0, buffer.Length);
+						//		stream.Flush();
 
-							}
-
-
-
-
-
-
-						}
+						//	}
+						//}
 
 
 					}
@@ -451,7 +445,9 @@ namespace Client.ViewModels
 		{
 			try
 			{
-				STREAM.Write(content);
+				Server.Tools.DataToBinaryWriter.WriteData(STREAM, content);
+
+				//STREAM.Write(content);
 				//STREAM.Flush();
 			}
 			catch (Exception ex)
@@ -507,8 +503,9 @@ namespace Client.ViewModels
 
 		void SendMessageToServer(Stream stream, byte[] _arr)
 		{
-			stream.Write(_arr, 0, _arr.Length);
-			stream.Flush();
+			Server.Tools.DataToBinaryWriter.WriteData(stream, _arr);
+			//stream.Write(_arr, 0, _arr.Length);
+			//stream.Flush();
 		}
 
 
