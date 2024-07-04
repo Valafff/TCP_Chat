@@ -7,6 +7,7 @@ using System.Linq;
 using System.Net.Http;
 using System.Net.Sockets;
 using System.Runtime.Serialization.Formatters.Binary;
+using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using System.Text.Json;
 using System.Threading.Tasks;
@@ -15,35 +16,12 @@ namespace Server.BLL.Services
 {
 	public class ServerCommands
 	{
-		//Система команд
-		const string CommandHelloMsr = "HelloMsr";
-		const string AnswerHelloUser = "HelloClientGoStep2";
-		const string CommandRegisterMe = "RegisterMe";
-		const string AnswerRegisterOk = "RegisterOkGoStep3";
-		const string AnswerRegisterFailed = "RegisterFailed";
-		const string CommandAuthorizeMe = "AuthorizeMe";
-		const string AnswerAuthorizationOk = "AuthorizationOkGoStep3";
-		const string AnswerAuthorizationFailed = "AuthorizationFailed";
-		const string CommandDeleteMe = "DeleteMe";
-		const string AnswerDeleteOk = "DeleteOkGoStep1";
-		const string AnswerDeleteFailed = "DeleteFailed";
-		const string CommandGetMeUsers = "GetMeUsers";
-		const string CommandGetMeActiveUsers = "GetMeActiveUsers";
-		const string AnswerCatchUsers = "CatchUsers";
-		const string AnswerCatchActiveUsers = "CatchActiveUsers";
-		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes";
-		const string AnswerCatchMessages = "CatchMessages";
-		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
-		const string AnswerMessageSendOk = "MessageSendOK";
-		const string AnswerMessageSendFailed = "MessageSendFailed";
-		const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
-
 		public void HelloClient(Stream _stream, TcpClient _tcpClient)
 		{
 			try
 			{
 				Console.WriteLine($"Попытка подключения {_tcpClient.Client.RemoteEndPoint} рукопожатие OK\t{DateTime.Now}");
-				var buffer = CourierServices.Packer(AnswerHelloUser);
+				var buffer = CourierServices.Packer(com.AnswerHelloUser);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
 				//_stream.Write(buffer, 0, buffer.Length);
@@ -71,7 +49,7 @@ namespace Server.BLL.Services
 					
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = newClient.Login });
 
-					var buffer = CourierServices.Packer(AnswerRegisterOk);
+					var buffer = CourierServices.Packer(com.AnswerRegisterOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 					//_stream.Write(buffer, 0, buffer.Length);
 
@@ -80,7 +58,7 @@ namespace Server.BLL.Services
 				}
 				else
 				{
-					var buffer = CourierServices.Packer(AnswerRegisterFailed);
+					var buffer = CourierServices.Packer(com.AnswerRegisterFailed);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
 
@@ -110,7 +88,7 @@ namespace Server.BLL.Services
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = AuthorizeUser.Key });
 					BLLMessageModel nullmessage = new BLLMessageModel();
 
-					byte[] buffer = CourierServices.Packer(AnswerAuthorizationOk);
+					byte[] buffer = CourierServices.Packer(com.AnswerAuthorizationOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 					//_stream.Write(buffer, 0, buffer.Length);
 					Console.WriteLine($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
@@ -118,7 +96,7 @@ namespace Server.BLL.Services
 				}
 				else
 				{
-					var buffer = CourierServices.Packer(AnswerAuthorizationFailed);
+					var buffer = CourierServices.Packer(com.AnswerAuthorizationFailed);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
 					//_tcpClient.Close();
@@ -139,7 +117,7 @@ namespace Server.BLL.Services
 			try
 			{
 				Courier courier = new Courier();
-				courier.Header = AnswerCatchUsers;
+				courier.Header = com.AnswerCatchUsers;
 				courier.MessageText = JsonSerializer.Serialize(_registredClients.Values);
 				var buffer = Services.CourierServices.Packer(courier);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
@@ -162,7 +140,7 @@ namespace Server.BLL.Services
 					ActivClientsLogins.Add(item.Login);
 				}
 				Courier courier = new Courier();
-				courier.Header = AnswerCatchActiveUsers;
+				courier.Header = com.AnswerCatchActiveUsers;
 				courier.MessageText = JsonSerializer.Serialize(ActivClientsLogins);
 				var buffer = CourierServices.Packer(courier);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
@@ -213,13 +191,13 @@ namespace Server.BLL.Services
 				//TODO Если клиент активен - передавать на прямую
 
 
-				byte[] buffer = CourierServices.Packer(AnswerMessageSendOk);
+				byte[] buffer = CourierServices.Packer(com.AnswerMessageSendOk);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 				//_stream.Write(buffer, 0, buffer.Length);
 			}
 			catch (Exception ex)
 			{
-				byte[] buffer = CourierServices.Packer(AnswerMessageSendFailed);
+				byte[] buffer = CourierServices.Packer(com.AnswerMessageSendFailed);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 				//_stream.Write(buffer, 0, buffer.Length);
 				Console.WriteLine(ex.Message);
@@ -239,7 +217,7 @@ namespace Server.BLL.Services
 				List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, _registredClients);
 
 				Courier courier = new Courier();
-				courier.Header = AnswerCatchMessages;
+				courier.Header = com.AnswerCatchMessages;
 				courier.MessageText = JsonSerializer.Serialize(unreadMessages);
 				var buffer = Services.CourierServices.Packer(courier);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
@@ -251,12 +229,19 @@ namespace Server.BLL.Services
 				Console.WriteLine(ex.Message);
 				throw;
 			}
-
-
-
 		}
 
-
+		public void CheckDeliveredMesseges(Courier courier, Dictionary<int, string> _slimClients)
+		{
+			List<BLLMessageModel> readedMessages = JsonSerializer.Deserialize<List<BLLMessageModel>>(courier.MessageText);
+			MessageService service = new MessageService();
+			foreach (var item in readedMessages)
+			{
+				item.IsDelivered = 1;
+				item.IsRead = 1;
+				service.UpdateMessage(item, _slimClients);
+			}
+		}
 	}
 
 }

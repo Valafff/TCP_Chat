@@ -12,37 +12,17 @@ using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows.Media.Animation;
 using Server.BLL.Services;
+using Microsoft.Win32;
+using Microsoft.WindowsAPICodePack.Dialogs;
+
 
 namespace Client.Services
 {
 	public class ClientCommands
 	{
-		//Система команд
-		const string CommandHelloMsr = "HelloMsr";
-		const string AnswerHelloUser = "HelloClientGoStep2";
-		const string CommandRegisterMe = "RegisterMe";
-		const string AnswerRegisterOk = "RegisterOkGoStep3";
-		const string AnswerRegisterFailed = "RegisterFailed";
-		const string CommandAuthorizeMe = "AuthorizeMe";
-		const string AnswerAuthorizationOk = "AuthorizationOkGoStep3";
-		const string AnswerAuthorizationFailed = "AuthorizationFailed";
-		const string CommandDeleteMe = "DeleteMe";
-		const string AnswerDeleteOk = "DeleteOkGoStep1";
-		const string AnswerDeleteFailed = "DeleteFailed";
-		const string CommandGetMeUsers = "GetMeUsers";
-		const string CommandGetMeActiveUsers = "GetMeActiveUsers";
-		const string AnswerCatchUsers = "CatchUsers";
-		const string AnswerCatchActiveUsers = "CatchActiveUsers";
-		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes"; //Запрос непрочитанных сообщений(логин отправителя, количество, имеются или нет вложения)
-		const string AnswerCatchMessages = "CatchMessages";
-		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
-		const string AnswerMessageSendOk = "MessageSendOK";
-		const string AnswerMessageSendFailed = "MessageSendFailed";
-		const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
-
 		public void HelloServer(Stream _stream)
 		{
-			var data = CourierServices.Packer(CommandHelloMsr);
+			var data = CourierServices.Packer(com.CommandHelloMsr);
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, data);
 
 
@@ -62,7 +42,7 @@ namespace Client.Services
 
 		public void RequesRegistredClients(Stream _stream)
 		{
-			var buffer = CourierServices.Packer(CommandGetMeUsers);
+			var buffer = CourierServices.Packer(com.CommandGetMeUsers);
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
 			//_stream.Write(buffer, 0, buffer.Length);
@@ -83,7 +63,7 @@ namespace Client.Services
 
 		public void RequestActiveUsers(Stream _stream)
 		{
-			var buffer = CourierServices.Packer(CommandGetMeActiveUsers);
+			var buffer = CourierServices.Packer(com.CommandGetMeActiveUsers);
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
 			//_stream.Write(buffer, 0, buffer.Length);
@@ -91,7 +71,7 @@ namespace Client.Services
 
 		public void RequestUnreadMessages(Stream _stream)
 		{
-			var buffer = CourierServices.Packer(CommandGiveMeUnReadMes);
+			var buffer = CourierServices.Packer(com.CommandGiveMeUnReadMes);
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 		}
 
@@ -103,8 +83,8 @@ namespace Client.Services
 			}
 			catch (Exception ex)
 			{
-                Console.WriteLine(ex.Message);
-                throw;
+				Console.WriteLine(ex.Message);
+				throw;
 			}
 		}
 
@@ -112,5 +92,41 @@ namespace Client.Services
 		{
 			return JsonSerializer.Deserialize<List<BLLMessageModel>>(_courier.MessageText);
 		}
+
+		public void MessegesDelivered(Stream _stream, List<BLLMessageModel> _readedMessages)
+		{
+			Courier courier = new Courier() { Header = com.CommandMessageDeliveredOK, MessageText = JsonSerializer.Serialize(_readedMessages) };
+			var buffer = Server.BLL.Services.CourierServices.Packer(courier);
+			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+		}
+
+		public void GiveMeAttachments(Stream _stream, string _attachments)
+		{
+			string[] names = _attachments.Split(':', StringSplitOptions.RemoveEmptyEntries);
+			string savePath = "";
+
+			var dialog = new CommonOpenFileDialog();
+			dialog.IsFolderPicker = true;
+			CommonFileDialogResult result = dialog.ShowDialog();
+			if (result == CommonFileDialogResult.Ok)
+			{
+				savePath = dialog.FileName;
+			}
+
+
+            Console.WriteLine(savePath);
+			foreach (string name in names)
+			{
+                Console.WriteLine(name);
+            }
+
+            //SaveFileDialog sd = new SaveFileDialog();
+            //bool? result = sd.ShowDialog();
+            //if (result == true)
+            //{
+
+            //}
+        }
+
 	}
 }

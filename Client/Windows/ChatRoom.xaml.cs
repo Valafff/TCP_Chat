@@ -1,4 +1,5 @@
 ﻿using Client.Models;
+using Client.Services;
 using Client.ViewModels;
 using Microsoft.Win32;
 using Microsoft.Xaml.Behaviors_Test;
@@ -8,6 +9,8 @@ using System.IO;
 using System.Linq;
 using System.Net.Mail;
 using System.Text;
+using System.Text.Encodings.Web;
+using System.Text.Json;
 using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
@@ -28,16 +31,20 @@ namespace Client.Windows
 		MainMenu main;
 		UIClientModel UIClientReciverModel;
 		string SenderLogin;
-		List<string> Correspondence;
-		public ChatRoom(MainMenu _main, UIClientModel _reciver, string _senderLogin)
+		List<ArchiveMessage> Correspondence;
+		MainWindow Window;
+		public ChatRoom(MainMenu _main, UIClientModel _reciver, string _senderLogin, MainWindow _mainWindow)
 		{
 			this.main = _main;
 			//!!!Получатель тот кому текущий клиент пишет письмо! При чтении сообщений он sender как бы
 			UIClientReciverModel = _reciver;
 			InitializeComponent();
 			DataContext = main;
+			Window = _mainWindow;
 			Title = "Сообщение пользователю " + UIClientReciverModel.Login;
 			SenderLogin = _senderLogin;
+			ClientDirectoryCreation.AddClientDirectory(_reciver.Login);
+
 			if (main.AllMessagesList.Keys.Contains(UIClientReciverModel)) Correspondence = main.AllMessagesList[UIClientReciverModel];
 			ReadAllMessages();
 
@@ -112,62 +119,132 @@ namespace Client.Windows
 			//main.RefreshUsers(main.UICLients);
 			ScrollDown();
 
-
 		}
 
 
 		void ReadAllMessages()
 		{
 			if (Correspondence != null)
-			//Сообщения из архива
-			foreach (var item in Correspondence)
-			{
-				var mes = item.Remove(0, 19);
-				var tempLogin = mes.Substring(0, mes.IndexOf(":"));
-				TextBlock message = new TextBlock() { Text = mes };
-				if (mes.Length > 20)
+				//Сообщения из архива
+				foreach (var item in Correspondence)
 				{
-					message.Width = 250;
+					//var mes = item.Remove(0, 19);
+					//var tempLogin = mes.Substring(0, mes.IndexOf(":"));
+
+					if (item.FilesNames.Count > 0)
+					{
+						MakeAttachment(item.Sender, item.Reciver, item.TextMessage, item.FilesNames, sp_Messeges);
+					}
+					else
+					{
+						TextBlock ArcMessage = new TextBlock() { Text = item.Sender + ": " + item.TextMessage };
+						ArcMessage.TextWrapping = TextWrapping.Wrap;
+						if (item.Reciver == UIClientReciverModel.Login)
+						{
+							ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
+						}
+						else
+						{
+							ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
+						}
+						Grid.SetRow(ArcMessage, 1);
+						sp_Messeges.Children.Add(ArcMessage);
+					}
+
+
+
+
+
+
+
+					//TextBlock message = new TextBlock() { Text = $"{item.Sender}: {}" };
+					//if (mes.Length > 20)
+					//{
+					//	message.Width = 250;
+					//}
+					//message.TextWrapping = TextWrapping.Wrap;
+					//if (tempLogin.Contains(SenderLogin))
+					//{
+					//	message.HorizontalAlignment = HorizontalAlignment.Right;
+					//}
+					//else
+					//{
+					//	message.HorizontalAlignment = HorizontalAlignment.Left;
+					//}
+					//Grid.SetRow(message, 1);
+					//sp_Messeges.Children.Add(message);
 				}
-				message.TextWrapping = TextWrapping.Wrap;
-				if (tempLogin.Contains(SenderLogin))
-				{
-					message.HorizontalAlignment = HorizontalAlignment.Right;
-				}
-				else
-				{
-					message.HorizontalAlignment = HorizontalAlignment.Left;
-				}
-				Grid.SetRow(message, 1);
-				sp_Messeges.Children.Add(message);
-			}
+
 			//Непрочитанные сообщения
+			//Инвертировано тк. sender в контексте написания сообщения
 			var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
 			if (newMessages.Count > 0)
 			{
 				TextBlock m = new TextBlock() { Text = "Новые сообщения" };
+				ArchiveMessage archive = new ArchiveMessage();
 				Grid.SetRow(m, 1);
 				sp_Messeges.Children.Add(m);
 				foreach (var item in newMessages)
 				{
-					if (item.MessageContentNames.Count > 0)
-					{
+					archive.Date = item.Date;
+					archive.Sender = item.UserSender.Login;
+					archive.Reciver = item.UserReciver.Login;
+					archive.TextMessage = item.MessageText;
+					archive.FilesNames = item.MessageContentNames;
 
+					string path = $"{Directory.GetCurrentDirectory()}\\Clients\\{item.UserReciver.Login}\\{item.UserSender.Login}.json";
+					List<ArchiveMessage> arcList = new List<ArchiveMessage>();
+
+					if (File.Exists(path))
+					{
+						using (FileStream fs = new FileStream(path, FileMode.Open))
+						{
+							if (fs.Length > 0)
+							{
+								arcList = JsonSerializer.Deserialize<List<ArchiveMessage>>(fs);
+							}
+						}
 					}
 					else
 					{
-						TextBlock message = new TextBlock() {Text = item.MessageText};
+						if (!Directory.Exists($"{Directory.GetCurrentDirectory()}\\Clients\\{item.UserReciver.Login}"))
+							Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}\\Clients\\{item.UserReciver.Login}");
+					}
+					arcList.Add(archive);
+
+					using (FileStream fs = new FileStream(path, FileMode.Create))
+					{
+						JsonSerializer.Serialize(fs, arcList, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+					}
+
+					// метод извещающий сервер о получении сообщения
+					ClientCommands commands = new ClientCommands();
+					commands.MessegesDelivered(main.STREAM, newMessages);
+					//обновление записей
+					for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
+					{
+						if (main.UnreadMessagesTextOnly[i].Id == item.Id)
+						{
+							main.UnreadMessagesTextOnly.RemoveAt(i);
+						}
+					}
+					main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
+					Window.UpdateClients();
+
+
+					if (item.MessageContentNames.Count > 0)
+					{
+						MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
+					}
+					else
+					{
+						TextBlock message = new TextBlock() { Text = item.UserSender.Login + ": " + item.MessageText };
 						Grid.SetRow(message, 1);
 						sp_Messeges.Children.Add(message);
 					}
 				}
+
 			}
-
-
-
-
-
-
 			ScrollDown();
 		}
 
@@ -176,5 +253,64 @@ namespace Client.Windows
 			scrollMessage.ScrollToVerticalOffset(int.MaxValue);
 		}
 
+		void MakeAttachment(string _senderLogin, string _reciverLogin, string _message, List<string> _fileNames, StackPanel _sp)
+		{
+			StackPanel TextAndAttachments = new StackPanel() { Name = "sp_TextAndAttachments" };
+			TextBlock ArcMessage = new TextBlock() { Text = _senderLogin + ": " + _message };
+			ArcMessage.TextWrapping = TextWrapping.Wrap;
+			if (_reciverLogin == UIClientReciverModel.Login)
+			{
+				ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
+			}
+			else
+			{
+				ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
+			}
+			Grid.SetRow(ArcMessage, 1);
+			TextAndAttachments.Children.Add(ArcMessage);
+			TextBlock Info = new TextBlock() { Text = "Вложенные файлы" };
+			Grid.SetRow(Info, 1);
+			TextAndAttachments.Children.Add(Info);
+			string buttonName = "";
+			foreach (var attachment in _fileNames)
+			{
+				buttonName += attachment;
+				buttonName += ":";
+				TextBlock fileName = new TextBlock() { Text = attachment };
+				ArcMessage.TextWrapping = TextWrapping.Wrap;
+				if (_reciverLogin == UIClientReciverModel.Login)
+				{
+					ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
+				}
+				else
+				{
+					ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
+				}
+				Grid.SetRow(TextAndAttachments, 1);
+				TextAndAttachments.Children.Add(fileName);
+			}
+			Button bt_AttachmentsToSave = new Button() { DataContext = buttonName, Content = "Сохранить вложения" };
+			if (_reciverLogin == UIClientReciverModel.Login)
+			{
+				bt_AttachmentsToSave.HorizontalAlignment = HorizontalAlignment.Right;
+			}
+			else
+			{
+				bt_AttachmentsToSave.HorizontalAlignment = HorizontalAlignment.Left;
+			}
+			bt_AttachmentsToSave.Click += Bt_AttachmentsToSave_Click;
+
+			Grid.SetRow(bt_AttachmentsToSave, 1);
+			TextAndAttachments.Children.Add(bt_AttachmentsToSave);
+			Grid.SetRow(TextAndAttachments, 1);
+			_sp.Children.Add(TextAndAttachments);
+		}
+
+		private void Bt_AttachmentsToSave_Click(object sender, RoutedEventArgs e)
+		{
+			ClientCommands command = new ClientCommands();
+			command.GiveMeAttachments(main.STREAM, ((Button)sender).DataContext.ToString());
+
+		}
 	}
 }

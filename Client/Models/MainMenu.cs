@@ -21,6 +21,7 @@ using System.Threading.Tasks;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Media.TextFormatting;
+using System.Windows.Shapes;
 
 namespace Client.ViewModels
 {
@@ -33,29 +34,6 @@ namespace Client.ViewModels
 		public event VoidEvent CloseAuthWindowEvent;
 		public event VoidEvent UpdateWindowsWithClients;
 
-		//Система команд
-		const string CommandHelloMsr = "HelloMsr";
-		const string AnswerHelloUser = "HelloClientGoStep2";
-		const string CommandRegisterMe = "RegisterMe";
-		const string AnswerRegisterOk = "RegisterOkGoStep3";
-		const string AnswerRegisterFailed = "RegisterFailed";
-		const string CommandAuthorizeMe = "AuthorizeMe";
-		const string AnswerAuthorizationOk = "AuthorizationOkGoStep3";
-		const string AnswerAuthorizationFailed = "AuthorizationFailed";
-		const string CommandDeleteMe = "DeleteMe";
-		const string AnswerDeleteOk = "DeleteOkGoStep1";
-		const string AnswerDeleteFailed = "DeleteFailed";
-		const string CommandGetMeUsers = "GetMeUsers";
-		const string CommandGetMeActiveUsers = "GetMeActiveUsers";
-		const string AnswerCatchUsers = "CatchUsers";
-		const string AnswerCatchActiveUsers = "CatchActiveUsers";
-		const string CommandGiveMeUnReadMes = "GiveMeUnReadMes"; //Запрос непрочитанных сообщений(логин отправителя, количество, имеются или нет вложения)
-		const string AnswerCatchMessages = "CatchMessages";
-		const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
-		const string AnswerMessageSendOk = "MessageSendOK";
-		const string AnswerMessageSendFailed = "MessageSendFailed";
-		const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
-
 		bool AuthtorizationMode = false;
 		bool WorkMode = false;
 
@@ -63,7 +41,7 @@ namespace Client.ViewModels
 		const int buffersize = 1024;
 
 		TcpClient tcpClient = new TcpClient();
-		NetworkStream STREAM;
+		public NetworkStream STREAM;
 		IPAddress SERVERIPADDRESS;
 		int SERVERPORT;
 
@@ -91,8 +69,8 @@ namespace Client.ViewModels
 		}
 
 		//Все сообщения прочитанные из папки clients
-		Dictionary<UIClientModel, List<string>> _allmessages;
-		public Dictionary<UIClientModel, List<string>> AllMessagesList
+		Dictionary<UIClientModel, List<ArchiveMessage>> _allmessages;
+		public Dictionary<UIClientModel, List<ArchiveMessage>> AllMessagesList
 		{
 			get => _allmessages;
 			set => SetField(ref _allmessages, value);
@@ -151,7 +129,7 @@ namespace Client.ViewModels
 			BLLClient = new Server.BLL.Models.BLLClientModel();
 			UICLients = new ObservableCollection<UIClientModel>();
 			ArchhiveMessages = new Server.BLL.Models.BLLMessageModel() { UserReciver = new Server.BLL.Models.BLLSlimClientModel(), UserSender = new Server.BLL.Models.BLLSlimClientModel(), MessageContentNames = new List<string>() };
-			AllMessagesList = new Dictionary<UIClientModel, List<string>>();
+			AllMessagesList = new Dictionary<UIClientModel, List<ArchiveMessage>>();
 			LoadingAttachments_KeyNameValuePath = new Dictionary<string, string>();
 			ActiveClients = new List<string>();
 			UnreadMessagesTextOnly = new List<BLLMessageModel>();
@@ -165,7 +143,7 @@ namespace Client.ViewModels
 					BLLClient.Status = 1;
 					BLLClient.LastVisit = DateTime.Now;
 
-					Courier courier = new Courier() { Header = CommandRegisterMe, MessageText = JsonSerializer.Serialize(BLLClient) };
+					Courier courier = new Courier() { Header = com.CommandRegisterMe, MessageText = JsonSerializer.Serialize(BLLClient) };
 					var buffer = Server.BLL.Services.CourierServices.Packer(courier);
 					SendRegOrAuthClient(buffer);
 				},
@@ -177,7 +155,7 @@ namespace Client.ViewModels
 				execute: _ =>
 				{
 					KeyValuePair<string, string> AuthorizeUser = new KeyValuePair<string, string>(key: BLLClient.Login, value: BLLClient.Password);
-					Courier courier = new Courier() { Header = CommandAuthorizeMe, MessageText = JsonSerializer.Serialize(AuthorizeUser) };
+					Courier courier = new Courier() { Header = com.CommandAuthorizeMe, MessageText = JsonSerializer.Serialize(AuthorizeUser) };
 					var buffer = Server.BLL.Services.CourierServices.Packer(courier);
 					SendRegOrAuthClient(buffer);
 				},
@@ -188,7 +166,7 @@ namespace Client.ViewModels
 				execute: _ =>
 				{
 					AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
-					byte[] arr = Server.BLL.Services.CourierServices.Packer(ArchhiveMessages, CommandMessageTo, LoadingAttachments_KeyNameValuePath);
+					byte[] arr = Server.BLL.Services.CourierServices.Packer(ArchhiveMessages, com.CommandMessageTo, LoadingAttachments_KeyNameValuePath);
 					SendMessageToServer(STREAM, arr);
 				},
 				canExecute => ArchhiveMessages.UserReciver != null
@@ -235,19 +213,19 @@ namespace Client.ViewModels
 					try
 					{
 						//Автоматическая авторизация выполняется если сервер принимает подключение и стоит флаг автоматического входа
-						if (courier.Header == AnswerHelloUser && UserConfigData.AutoAuthtorization)
+						if (courier.Header == com.AnswerHelloUser && UserConfigData.AutoAuthtorization)
 						{
 							commands.AutoAuthtoeize(BLLClient, this, UserConfigData);
 						}
-						if (courier.Header == AnswerRegisterFailed)
+						if (courier.Header == com.AnswerRegisterFailed)
 						{
 							MessageBox.Show("Отказ в регистрации. Логин занят или введены некорректные символы");
 						}
-						if (courier.Header == AnswerAuthorizationFailed)
+						if (courier.Header == com.AnswerAuthorizationFailed)
 						{
 							MessageBox.Show("Ошибка авторизации");
 						}
-						if (courier.Header == AnswerAuthorizationOk || courier.Header == AnswerRegisterOk)
+						if (courier.Header == com.AnswerAuthorizationOk || courier.Header == com.AnswerRegisterOk)
 						{
 							commands.RequesRegistredClients(stream);
 							if (CloseAuthWindowEvent != null)
@@ -259,7 +237,7 @@ namespace Client.ViewModels
 								CloseRegistrationWindowEvent();
 							}
 						}
-						if (courier.Header == AnswerCatchUsers)
+						if (courier.Header == com.AnswerCatchUsers)
 						{
 							List<string> temp = commands.ReadRegistredClients(courier);
 							foreach (var item in temp)
@@ -267,20 +245,20 @@ namespace Client.ViewModels
 								Application.Current.Dispatcher.Invoke(() => { UICLients.Add(new UIClientModel() { Login = item }); });
 							}
 						}
-						if (courier.Header == AnswerCatchUsers)
+						if (courier.Header == com.AnswerCatchUsers)
 						{
 							commands.RequestActiveUsers(stream);
 						}
-						if (courier.Header == AnswerCatchActiveUsers)
+						if (courier.Header == com.AnswerCatchActiveUsers)
 						{
 							ActiveClients = commands.ReadActiveClients(courier);
 						}
-						if (courier.Header == AnswerCatchActiveUsers)
+						if (courier.Header == com.AnswerCatchActiveUsers)
 						{
 							//Запрос непрочитанных сообщений(логин отправителя, количество, имеются или нет вложения)
 							commands.RequestUnreadMessages(stream);
 						}
-						if (courier.Header == AnswerCatchMessages)
+						if (courier.Header == com.AnswerCatchMessages)
 						{
 							UnreadMessagesTextOnly = commands.ReadMessagesTextOnly(courier);
 							CheckActiveClients();
@@ -289,14 +267,14 @@ namespace Client.ViewModels
 							//Обновление UI
 							UpdateWindowsWithClients();
 						}
-						if (courier.Header == AnswerMessageSendOk)
+						if (courier.Header == com.AnswerMessageSendOk)
 						{
 							AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
 							ResultStringBuilder(UICLients, UnreadMessagesTextOnly);
 							UpdateWindowsWithClients();
 							//MessageBox.Show("Сообщение отправлено");
 						}
-						if (courier.Header == AnswerMessageSendFailed)
+						if (courier.Header == com.AnswerMessageSendFailed)
 						{
 							MessageBox.Show("Сообщение не отправлено");
 						}
@@ -526,40 +504,6 @@ namespace Client.ViewModels
 			}
 		}
 
-		//public void ConnectWithNewrop(BLLClientModel _client, UserConfig _userConfig)
-		//{
-		//	BLLClient = _client;
-		//	UserConfigData = _userConfig;
-		//	tcpClient.Close();
-		//	Task.Delay(100).Wait();
-		//	tcpClient = new TcpClient();
-		//	TCPClientWork(SERVERIPADDRESS, SERVERPORT);
-		//	Task.Run(new Action(() => NetworkStreamReader()));
-		//}
-
-		//List<string> ReadRegisterUsers(string _inputString)
-		//{
-		//	try
-		//	{
-		//		Server.BLL.Models.Content content = JsonSerializer.Deserialize<Server.BLL.Models.Content>(_inputString);
-		//		List<string> reg = new List<string>();
-		//		reg = JsonSerializer.Deserialize<List<string>>(content.Entity);
-		//		return reg;
-		//	}
-		//	catch (Exception ex)
-		//	{
-		//		//Console.WriteLine(ex);
-		//		return null;
-		//	}
-		//}
-
-		//void GiveMeActiveClients(Stream stream)
-		//{
-		//	byte[] outputArray = Server.BLL.Services.CourierServices.Packer(CommandGetMeActiveUsers);
-		//	stream.Write(outputArray);
-		//	stream.Flush();
-		//}
-
 		void SendMessageToServer(Stream stream, byte[] _arr)
 		{
 			Server.Tools.DataToBinaryWriter.WriteData(stream, _arr);
@@ -567,39 +511,34 @@ namespace Client.ViewModels
 
 
 		//Получение списка всех сообщений от всех клиентов
-		Dictionary<UIClientModel, List<string>> ReadAllMessagesFromUserMemory(ObservableCollection<UIClientModel> _clients)
+		Dictionary<UIClientModel, List<ArchiveMessage>> ReadAllMessagesFromUserMemory(ObservableCollection<UIClientModel> _clients)
 		{
-			Dictionary<UIClientModel, List<string>> dict = new Dictionary<UIClientModel, List<string>>();
+			Dictionary<UIClientModel, List<ArchiveMessage>> dict = new Dictionary<UIClientModel, List<ArchiveMessage>>();
 			if (!Directory.Exists(Directory.GetCurrentDirectory() + $"\\Clients\\"))
 			{
 				Directory.CreateDirectory(Directory.GetCurrentDirectory() + $"\\Clients\\");
 			}
-
 			DirectoryInfo ClientDirectory = new DirectoryInfo(Directory.GetCurrentDirectory() + $"\\Clients\\");
 			DirectoryInfo[] directories = ClientDirectory.GetDirectories();
 
-			foreach (var item in directories)
-			{
-				FileInfo ClientMessagesFile = new FileInfo(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt");
-
-				if (ClientMessagesFile.Exists)
+			var targetDir = directories.First(d => d.Name.Contains( BLLClient.Login));
+			//foreach (var item in directories)
+			//{
+				FileInfo[] files =  targetDir.GetFiles("*.json");
+				foreach (var file in files)
 				{
-					var tempMessages = new List<string>();
-					using (StreamReader sr = new StreamReader(Directory.GetCurrentDirectory() + $"\\Clients\\" + $"\\{item.Name}\\" + item.Name + ".txt"))
-					{
-						while (!sr.EndOfStream)
-						{
-							tempMessages.Add(sr.ReadLine());
-						}
-					}
-					dict.Add(key: _clients.First(c => c.Login == item.Name), value: tempMessages);
+					var tempMessages = new List<ArchiveMessage>();
+					using FileStream fs = new FileStream(file.FullName, FileMode.Open);
+					tempMessages = JsonSerializer.Deserialize<List<ArchiveMessage>>(fs);
+					
+					dict.Add(key: _clients.First(c => file.Name.Contains(c.Login)), value: tempMessages);
 				}
-			}
+			//}
 			return dict;
 		}
 
 		//_messagedata подгружаются из списка сообщений txt на диске 
-		void ResultStringBuilder(ObservableCollection<UIClientModel> _clients, List<BLLMessageModel> _messages)
+		public void ResultStringBuilder(ObservableCollection<UIClientModel> _clients, List<BLLMessageModel> _messages)
 		{
 			foreach (var item in _clients)
 			{

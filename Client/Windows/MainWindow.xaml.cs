@@ -19,7 +19,7 @@ namespace Client
 
 	public partial class MainWindow : Window
 	{
-
+		object UpdateEventRef;
 		MainMenu main = new MainMenu();
 		UserConfig user = new UserConfig();
 		ChatConfig chat = new ChatConfig();
@@ -99,7 +99,7 @@ namespace Client
 			if (!((Button)sender).Content.ToString().Contains(main.BLLClient.Login))
 			{
 				UIClientModel ReciverClient = main.UICLients.First(l => ((Button)sender).Content.ToString().Contains(l.ResultString));
-				ChatRoom room = new ChatRoom(main, ReciverClient, main.BLLClient.Login);
+				ChatRoom room = new ChatRoom(main, ReciverClient, main.BLLClient.Login, this);
 				room.ShowDialog();
 			}
 		}
@@ -115,7 +115,7 @@ namespace Client
 			window.ShowDialog();
 		}
 
-		void UpdateClients()
+		public void UpdateClients()
 		{
 
 			Application.Current.Dispatcher.Invoke(() =>

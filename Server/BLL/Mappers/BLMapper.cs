@@ -88,6 +88,7 @@ namespace Server.BLL.Mappers
 				int tempIdReciver = (_slimClients.First(s => s.Value == _mesBLL.UserReciver.Login)).Key;
 				return new DALMessageModel()
 				{
+					Id = _mesBLL.Id,
 					FromUserID = tempIdSender,
 					ToUserID = tempIdReciver,
 					Date = _mesBLL.Date.ToString(),

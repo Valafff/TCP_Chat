@@ -9,12 +9,9 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Compile Remove="Models\BLL\BLLMessageModel.cs" />
-  </ItemGroup>
-
-  <ItemGroup>
     <PackageReference Include="Microsoft.Xaml.Behaviors.Wpf" Version="1.1.122" />
     <PackageReference Include="protobuf-net" Version="3.2.30" />
+    <PackageReference Include="WindowsAPICodePack-Shell" Version="1.1.1" />
   </ItemGroup>
 
   <ItemGroup>

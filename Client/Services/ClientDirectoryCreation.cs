@@ -13,10 +13,15 @@ namespace Client.Services
 		{
 			try
 			{
-				string currDir = Directory.GetCurrentDirectory();
-				currDir += $"\\Clients\\{_login}";
-				Directory.CreateDirectory(currDir);
-				return true;
+				//string currDir = Directory.GetCurrentDirectory();
+				string currDir = Directory.GetCurrentDirectory() + $"\\Clients\\{_login}" ;
+				if (!Directory.Exists(currDir))
+				{
+					Directory.CreateDirectory(currDir);
+					return true;
+				}
+				return false;
+
 			}
 			catch (Exception ex)
 			{
