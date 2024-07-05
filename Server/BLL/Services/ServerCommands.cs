@@ -51,7 +51,7 @@ namespace Server.BLL.Services
 					var buffer = CourierServices.Packer(com.AnswerRegisterOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
-					IamActiveBroadCastCommand(_activeClients, _registredClients, _tcpClient);
+					//IamActiveBroadCastCommand(_activeClients, _registredClients, _tcpClient);
 
 					Console.WriteLine($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");
@@ -91,7 +91,7 @@ namespace Server.BLL.Services
 					byte[] buffer = CourierServices.Packer(com.AnswerAuthorizationOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
-					IamActiveBroadCastCommand(_activeClients, _registredClients, _tcpClient);
+					//IamActiveBroadCastCommand(_activeClients, _registredClients, _tcpClient);
 
 					Console.WriteLine($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");

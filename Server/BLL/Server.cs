@@ -52,7 +52,8 @@ namespace Server.BLL
 					//Проверка активных подключений
 					if (!itsWork)
 					{
-						_ = Task.Factory.StartNew(() => CheckActiveClients(ActiveClients), TaskCreationOptions.LongRunning);
+						_ = Task.Factory.StartNew(() => CheckActiveClients(ref ActiveClients), TaskCreationOptions.LongRunning);
+						_ = Task.Factory.StartNew(() => ActiveClientsKeeper(ref ActiveClients), TaskCreationOptions.LongRunning);
 						itsWork = true;
 					}
 				}
@@ -159,45 +160,61 @@ namespace Server.BLL
 			}
 
 		}
-		void CheckActiveClients(List<ActiveClientLogin> _clients)
+		void CheckActiveClients(ref List<ActiveClientLogin> _clients)
 		{
-			bool broadcast = false;
 			object LockObj = new object();
 			do
 			{
 				Task.Delay(delay).Wait();
 				lock (LockObj)
 				{
-
 					for (int i = 0; i < _clients.Count; i++)
 					{
+
 						if (!_clients[i].ActiveClient.Connected)
 						{
 							Console.WriteLine($"Клиент {_clients[i].ActiveClient.Client.RemoteEndPoint} отключился\t{DateTime.Now}");
 							_clients.Remove(_clients[i]);
 							Console.WriteLine($"Активные клиенты {_clients.Count}");
-							broadcast = true;
-						}
 
-						if (broadcast)
+						}
+					}			
+				}
+			} while (true);
+		}
+
+		void ActiveClientsKeeper(ref List<ActiveClientLogin> _clients)
+		{
+
+			int oldCount = 0;
+
+
+			object LockObj = new object();
+			do
+			{
+				int nowCount = _clients.Count;
+				Task.Delay(delay*10).Wait();
+				lock (LockObj)
+				{
+
+                    if (oldCount != nowCount)
+					{
+						Console.WriteLine("!!!");
+						oldCount = nowCount;
+						//Извещает всех об отключении пользователя
+						Courier courier = new Courier();
+						courier.Header = com.AnswerCatchUsers;
+						courier.MessageText = JsonSerializer.Serialize(RegistredClients.Values);
+						var buffer = CourierServices.Packer(courier);
+						Console.WriteLine(_clients.Count);
+						foreach (var client in _clients)
 						{
-							//Извещает всех об отключении пользователя
-							Courier courier = new Courier();
-							courier.Header = com.AnswerCatchUsers;
-							courier.MessageText = JsonSerializer.Serialize(RegistredClients.Values);
-							var buffer = CourierServices.Packer(courier);
-							foreach (var client in ActiveClients)
-							{
-								Tools.DataToBinaryWriter.WriteData(client.ClientStream, buffer);
-							}
-							broadcast = false;
+							Tools.DataToBinaryWriter.WriteData(client.ClientStream, buffer);
 						}
 					}
 				}
 			} while (true);
 		}
-
-
 
 
 
