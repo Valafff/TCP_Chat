@@ -14,6 +14,7 @@ using System.Windows.Media.Animation;
 using Server.BLL.Services;
 using Microsoft.Win32;
 using Microsoft.WindowsAPICodePack.Dialogs;
+using System.Diagnostics.Metrics;
 
 
 namespace Client.Services
@@ -45,7 +46,6 @@ namespace Client.Services
 			var buffer = CourierServices.Packer(com.CommandGetMeUsers);
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
-			//_stream.Write(buffer, 0, buffer.Length);
 		}
 
 		public List<string> ReadRegistredClients(Courier _courier)
@@ -65,8 +65,6 @@ namespace Client.Services
 		{
 			var buffer = CourierServices.Packer(com.CommandGetMeActiveUsers);
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
-
-			//_stream.Write(buffer, 0, buffer.Length);
 		}
 
 		public void RequestUnreadMessages(Stream _stream)
@@ -102,7 +100,6 @@ namespace Client.Services
 
 		public string GiveMeAttachments(Stream _stream, string _attachments)
 		{
-			//TODO дописать метод
 			string[] names = _attachments.Split(':', StringSplitOptions.RemoveEmptyEntries);
 			string savePath = "";
 
@@ -114,13 +111,22 @@ namespace Client.Services
 				savePath = dialog.FileName;
 			}
 
-			foreach (string name in names)
-			{
-                Console.WriteLine(name);
-            }
+			Courier courier = new Courier() { Header = com.CommandGiveMeAttachments, MessageText = JsonSerializer.Serialize(names) };
+			var buffer = Server.BLL.Services.CourierServices.Packer(courier);
+			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 
 			return savePath;
-        }
+		}
+		public void SaveAttachments(string _directoryPath, Courier _courier)
+		{
+			foreach (var file in _courier.Attachments)
+			{
+				using (FileStream fs = new FileStream(_directoryPath + "\\" + file.Key, FileMode.OpenOrCreate))
+				{
+					fs.Write(file.Value);
+				}
+			}
+		}
 
 	}
 }

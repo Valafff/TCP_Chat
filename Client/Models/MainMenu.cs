@@ -34,25 +34,18 @@ namespace Client.ViewModels
 		public event VoidEvent CloseAuthWindowEvent;
 		public event VoidEvent UpdateWindowsWithClients;
 
-		bool AuthtorizationMode = false;
-		bool WorkMode = false;
-
-		const int delay = 10;
-		const int buffersize = 1024;
+		//bool AuthtorizationMode = false;
+		//bool WorkMode = false;
+		//const int delay = 10;
+		//const int buffersize = 1024;
 
 		TcpClient tcpClient = new TcpClient();
 		public NetworkStream STREAM;
 		IPAddress SERVERIPADDRESS;
 		int SERVERPORT;
-
 		public List<BLLMessageModel> UnreadMessagesTextOnly;
+		public string SaveAttachmentPath;
 
-		//UIClientModel _uiclient;
-		//      public UIClientModel UIClient 
-		//{
-		//	get => _uiclient; 
-		//	set => SetField(ref _uiclient, value); 
-		//}
 
 		Server.BLL.Models.BLLMessageModel _archHiveMessages;
 		public Server.BLL.Models.BLLMessageModel OutputMessage
@@ -278,50 +271,51 @@ namespace Client.ViewModels
 						{
 							MessageBox.Show("Сообщение не отправлено");
 						}
-
 						if (courier.Header == "NoCommand")
 						{
                             Console.WriteLine("Подключение потеряно");
                             break;
 						}
-
-						//Дай мне список непрочитанных сообщений
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-						//Расшифровка сообщений до авторизации
-						if (!WorkMode)
+						if (courier.Header == com.AnswerCatchAttachments)
 						{
-							//serverAnswer = ByteToString.GetStringFromStream(stream);
-						}
-						//Расшифровка сообщений после авторизации
-						else
-						{
-							//workLeveldata = StreamToCourierClass.StreamToByteArr(stream);
+							commands.SaveAttachments(SaveAttachmentPath, courier);
 						}
 
-						if (!WorkMode)
-						{
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+						////Расшифровка сообщений до авторизации
+						//if (!WorkMode)
+						//{
+						//	//serverAnswer = ByteToString.GetStringFromStream(stream);
+						//}
+						////Расшифровка сообщений после авторизации
+						//else
+						//{
+						//	//workLeveldata = StreamToCourierClass.StreamToByteArr(stream);
+						//}
+
+						//if (!WorkMode)
+						//{
 							//Контрольное прослушивание сообщений сервера
 							//Console.WriteLine(serverAnswer);
 
@@ -398,7 +392,7 @@ namespace Client.ViewModels
 							//	MessageBox.Show("Ошибка авторизации");
 							//}
 							//Не обработано событие удаления клиента
-						}
+						//}
 						//else if (WorkMode)
 						//{
 						//	Server.BLL.Models.BLLMessageModel IncomeMessage = new Server.BLL.Models.BLLMessageModel();

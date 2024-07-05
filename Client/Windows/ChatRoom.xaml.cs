@@ -237,11 +237,11 @@ namespace Client.Windows
 			TextBlock Info = new TextBlock() { Text = "Вложенные файлы" };
 			Grid.SetRow(Info, 1);
 			TextAndAttachments.Children.Add(Info);
-			string buttonName = "";
+			string dataContext = $"{_senderLogin}:{_reciverLogin}:";
 			foreach (var attachment in _fileNames)
 			{
-				buttonName += attachment;
-				buttonName += ":";
+				dataContext += attachment;
+				dataContext += ":";
 				TextBlock fileName = new TextBlock() { Text = attachment };
 				ArcMessage.TextWrapping = TextWrapping.Wrap;
 				if (_reciverLogin == UIClientReciverModel.Login)
@@ -255,7 +255,7 @@ namespace Client.Windows
 				Grid.SetRow(TextAndAttachments, 1);
 				TextAndAttachments.Children.Add(fileName);
 			}
-			Button bt_AttachmentsToSave = new Button() { DataContext = buttonName, Content = "Сохранить вложения" };
+			Button bt_AttachmentsToSave = new Button() { DataContext = dataContext, Content = "Сохранить вложения" };
 			if (_reciverLogin == UIClientReciverModel.Login)
 			{
 				bt_AttachmentsToSave.HorizontalAlignment = HorizontalAlignment.Right;
@@ -301,8 +301,7 @@ namespace Client.Windows
 		private void Bt_AttachmentsToSave_Click(object sender, RoutedEventArgs e)
 		{
 			ClientCommands command = new ClientCommands();
-			command.GiveMeAttachments(main.STREAM, ((Button)sender).DataContext.ToString());
-
+			main.SaveAttachmentPath = command.GiveMeAttachments(main.STREAM, ((Button)sender).DataContext.ToString());
 		}
 	}
 }

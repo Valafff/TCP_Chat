@@ -182,7 +182,7 @@ namespace Server.BLL.Services
 					}
 					foreach (var file in courier.Attachments)
 					{
-						using (FileStream fs = new FileStream(directoryPath + file.Key, FileMode.Create))
+						using (FileStream fs = new FileStream(directoryPath + file.Key, FileMode.OpenOrCreate))
 						{
 							fs.Write(file.Value);
 						}
@@ -214,7 +214,7 @@ namespace Server.BLL.Services
 				int userId = (_registredClients.First(l => l.Value == userReciverLogin)).Key;
 				MessageService service = new MessageService();
 				//Получен список непрочитанных сообщений с ссылками на вложения
-				List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, _registredClients);
+				List<BLLMessageModel> unreadMessages = service.GetAllUnReadMessages(userId, _registredClients);
 
 				Courier courier = new Courier();
 				courier.Header = com.AnswerCatchMessages;
@@ -241,6 +241,42 @@ namespace Server.BLL.Services
 				item.IsRead = 1;
 				service.UpdateMessage(item, _slimClients);
 			}
+		}
+
+		public void AttachmentsSend(Stream _stream, Courier _courier, Dictionary<int, string> _registredClients)
+		{
+			try
+			{
+				string[] names = JsonSerializer.Deserialize<string[]>(_courier.MessageText);
+				string senderLogin = names[0];
+				string reciverLogin = names[1];		
+				names = names[2..names.Length];
+
+				MessageService service = new MessageService();
+				List<BLLMessageModel> messages = service.GetAllMessagesBySenderReciver(_registredClients, senderLogin, reciverLogin);
+
+				Dictionary<string,string> namesAndPaths = new Dictionary<string,string>();
+				foreach (var item in names)
+				{
+					namesAndPaths.Add(key: item, value: Directory.GetCurrentDirectory() + $"\\Clients\\{reciverLogin}\\{item}");
+				}
+
+				//Сравнение с учетом порядка элементов bool Equal = list1.SequenceEquals(list2);
+				//Сравнение без учета порядка элементов bool Equal = new HashSet<string>(list1).SetEquals(list2);
+				BLLMessageModel targetMessege = messages.First(m => new HashSet<string>(m.MessageContentNames).SetEquals(names.ToList()));
+				var buffer = CourierServices.Packer(targetMessege, com.AnswerCatchAttachments, namesAndPaths);
+				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
+			}
+			catch (Exception ex)
+			{
+                Console.WriteLine(ex.Message);
+                Console.WriteLine("Ошибка отправления данных вложений");
+                throw;
+			}
+
+
+
+
 		}
 	}
 

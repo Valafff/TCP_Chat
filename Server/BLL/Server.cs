@@ -12,6 +12,7 @@ using System.Text.Json;
 using Server.BLL.Services;
 using System.Reflection;
 using System.Runtime.Serialization;
+using System.IO;
 
 namespace Server.BLL
 {
@@ -115,6 +116,10 @@ namespace Server.BLL
 				else if (courier.Header == com.CommandMessageDeliveredOK)
 				{
 					commands.CheckDeliveredMesseges(courier, RegistredClients);
+				}
+				else if (courier.Header == com.CommandGiveMeAttachments)
+				{
+					commands.AttachmentsSend(stream, courier, RegistredClients);
 				}
 
 				//	//УДАЛЕНИЕ КЛИЕНТА

@@ -29,7 +29,8 @@ namespace Server.BLL.Models
 		public const string CommandMessageTo = "MessageTo"; //Команда серверу - отправь сообщение такому то пользователю
 		public const string AnswerMessageSendOk = "MessageSendOK";
 		public const string CommandMessageDeliveredOK = "MessageDeliveredOK";
-
+		public const string CommandGiveMeAttachments = "GiveMeAttachments";
+		public const string AnswerCatchAttachments = "CathAttachments";
 
 		public const string AnswerMessageSendFailed = "MessageSendFailed";
 		public const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя

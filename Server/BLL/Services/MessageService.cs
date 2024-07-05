@@ -15,7 +15,7 @@ namespace Server.BLL.Services
 		DAL.Services.SQLLiteServiceMasseges service = new DAL.Services.SQLLiteServiceMasseges();
 
 		//Извлечь все непрочитанные сообщения для UserReciver из БД и отправить их UserReciver (для подключившегося клиента).
-		public List<BLLMessageModel> GetAllUnreadMessages(int _clientId, Dictionary<int, string> _slimClients)
+		public List<BLLMessageModel> GetAllUnReadMessages(int _clientId, Dictionary<int, string> _slimClients)
 		{			
 			List<BLLMessageModel> messages = new List<BLLMessageModel>();
 			IEnumerable<DALMessageModel> DALMessages = service.GetAllMessegesReciverID(_clientId);
@@ -26,6 +26,24 @@ namespace Server.BLL.Services
 					messages.Add(BLMapper.MapMesDALToMesBLL(message, _slimClients));
 				}
 			}	
+			return messages;
+		}
+
+		public List<BLLMessageModel> GetAllMessagesBySenderReciver(Dictionary<int, string> _slimClients, string _senderLogin, string _reciverLogin)
+		{
+			int senderId = (_slimClients.First(v => v.Value == _senderLogin)).Key;
+			int reciverId = (_slimClients.First(v => v.Value == _reciverLogin)).Key;
+
+			List<BLLMessageModel> messages = new List<BLLMessageModel>();
+			IEnumerable<DALMessageModel> DALMessages = service.GetAllMessegesReciverID(reciverId);
+
+			foreach (DALMessageModel message in DALMessages)
+			{
+				if (message.ToUserID == reciverId && message.FromUserID == senderId)
+				{
+					messages.Add(BLMapper.MapMesDALToMesBLL(message, _slimClients));
+				}
+			}
 			return messages;
 		}
 
