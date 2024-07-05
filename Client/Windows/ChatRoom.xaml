@@ -7,39 +7,43 @@
         xmlns:local="clr-namespace:Client.Windows"
         mc:Ignorable="d"
         Title="ChatRoom" Height="550" Width="550"
-        WindowStartupLocation="CenterScreen">
-    
+        WindowStartupLocation="CenterScreen" Closing="Window_Closing">
+
     <Window.DataContext>
         <wm:MainMenu/>
     </Window.DataContext>
 
     <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="107*"/>
+            <ColumnDefinition Width="443*"/>
+        </Grid.ColumnDefinitions>
         <Grid.RowDefinitions>
             <RowDefinition Height="3*"/>
             <RowDefinition Height="2*"/>
             <RowDefinition Height="2*"/>
             <RowDefinition Height="1*"/>
         </Grid.RowDefinitions>
-        <GroupBox Grid.Row="0" Header="Переписка">
+        <GroupBox Grid.Row="0" Header="Переписка" Grid.ColumnSpan="2">
             <ScrollViewer x:Name="scrollMessage" VerticalScrollBarVisibility="Auto"  HorizontalScrollBarVisibility="Auto">
                 <StackPanel x:Name="sp_Messeges" Margin="5"/>
             </ScrollViewer>
         </GroupBox>
 
-        <GroupBox Grid.Row="1" Header="Сообщение пользователю">
+        <GroupBox Header="Сообщение пользователю" Grid.ColumnSpan="2" Margin="0,200,0,133" Grid.RowSpan="3">
             <ScrollViewer>
-              <TextBox Grid.Row="1" x:Name="TB_MessegeTo"  TextWrapping="Wrap"  Text="{Binding Path=OutputMessage.MessageText, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>   
+                <TextBox Grid.Row="1" x:Name="TB_MessegeTo"  TextWrapping="Wrap"  Text="{Binding Path=OutputMessage.MessageText, UpdateSourceTrigger=PropertyChanged}" Margin="5"/>
             </ScrollViewer>
-           
+
         </GroupBox>
 
-        <GroupBox Grid.Row="2" Header="Файлы к отправке">
+        <GroupBox Grid.Row="2" Header="Файлы к отправке" Grid.ColumnSpan="2">
             <ScrollViewer>
                 <StackPanel x:Name="sp_Attachments" Margin="5"/>
             </ScrollViewer>
 
         </GroupBox>
-        <Grid Grid.Row="3">
+        <Grid Grid.Row="2" Grid.ColumnSpan="2" Margin="0,133,0,0" Grid.RowSpan="2">
             <Grid.ColumnDefinitions>
                 <ColumnDefinition/>
                 <ColumnDefinition/>

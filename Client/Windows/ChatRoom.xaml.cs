@@ -29,7 +29,7 @@ namespace Client.Windows
 	public partial class ChatRoom : Window
 	{
 		MainMenu main;
-		UIClientModel UIClientReciverModel;
+		public UIClientModel UIClientReciverModel;
 		string SenderLogin;
 		List<ArchiveMessage> Correspondence;
 		MainWindow Window;
@@ -136,84 +136,83 @@ namespace Client.Windows
 
 		void ReadAllMessages()
 		{
-				if (Correspondence != null)
-					//Сообщения из архива
-					foreach (var item in Correspondence)
-					{
-						//var mes = item.Remove(0, 19);
-						//var tempLogin = mes.Substring(0, mes.IndexOf(":"));
+			if (Correspondence != null)
+				//Сообщения из архива
+				foreach (var item in Correspondence)
+				{
+					//var mes = item.Remove(0, 19);
+					//var tempLogin = mes.Substring(0, mes.IndexOf(":"));
 
-						if (item.FilesNames.Count > 0)
+					if (item.FilesNames.Count > 0)
+					{
+						MakeAttachment(item.Sender, item.Reciver, item.TextMessage, item.FilesNames, sp_Messeges);
+					}
+					else
+					{
+						TextBlock ArcMessage = new TextBlock() { Text = item.Sender + ": " + item.TextMessage };
+						ArcMessage.TextWrapping = TextWrapping.Wrap;
+						if (item.Reciver == UIClientReciverModel.Login)
 						{
-							MakeAttachment(item.Sender, item.Reciver, item.TextMessage, item.FilesNames, sp_Messeges);
+							ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
 						}
 						else
 						{
-							TextBlock ArcMessage = new TextBlock() { Text = item.Sender + ": " + item.TextMessage };
-							ArcMessage.TextWrapping = TextWrapping.Wrap;
-							if (item.Reciver == UIClientReciverModel.Login)
-							{
-								ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
-							}
-							else
-							{
-								ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
-							}
-							Grid.SetRow(ArcMessage, 1);
-							sp_Messeges.Children.Add(ArcMessage);
+							ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
+						}
+						Grid.SetRow(ArcMessage, 1);
+						sp_Messeges.Children.Add(ArcMessage);
+					}
+				}
+
+			//Непрочитанные сообщения
+			//Инвертировано тк. sender в контексте написания сообщения
+			var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
+			if (newMessages.Count > 0)
+			{
+				TextBlock m = new TextBlock() { Text = "Новые сообщения" };
+				ArchiveMessage archive = new ArchiveMessage();
+				Grid.SetRow(m, 1);
+				sp_Messeges.Children.Add(m);
+				foreach (var item in newMessages)
+				{
+					archive.Date = item.Date;
+					archive.Sender = item.UserSender.Login;
+					archive.Reciver = item.UserReciver.Login;
+					archive.TextMessage = item.MessageText;
+					archive.FilesNames = item.MessageContentNames;
+
+					//Запись в архив
+					WriteToArchive(archive, item.UserReciver.Login, item.UserSender.Login);
+
+					// метод извещающий сервер о получении сообщения
+					ClientCommands commands = new ClientCommands();
+					commands.MessegesDelivered(main.STREAM, newMessages);
+					//обновление записей непрочитанных сообщений
+					for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
+					{
+						if (main.UnreadMessagesTextOnly[i].Id == item.Id)
+						{
+							main.UnreadMessagesTextOnly.RemoveAt(i);
 						}
 					}
-
-				//Непрочитанные сообщения
-				//Инвертировано тк. sender в контексте написания сообщения
-				var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
-				if (newMessages.Count > 0)
-				{
-					TextBlock m = new TextBlock() { Text = "Новые сообщения" };
-					ArchiveMessage archive = new ArchiveMessage();
-					Grid.SetRow(m, 1);
-					sp_Messeges.Children.Add(m);
-					foreach (var item in newMessages)
-					{
-						archive.Date = item.Date;
-						archive.Sender = item.UserSender.Login;
-						archive.Reciver = item.UserReciver.Login;
-						archive.TextMessage = item.MessageText;
-						archive.FilesNames = item.MessageContentNames;
-
-						//Запись в архив
-						WriteToArchive(archive, item.UserReciver.Login, item.UserSender.Login);
-
-						// метод извещающий сервер о получении сообщения
-						ClientCommands commands = new ClientCommands();
-						commands.MessegesDelivered(main.STREAM, newMessages);
-						//обновление записей непрочитанных сообщений
-						for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
-						{
-							if (main.UnreadMessagesTextOnly[i].Id == item.Id)
-							{
-								main.UnreadMessagesTextOnly.RemoveAt(i);
-							}
-						}
 					main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
 					Window.UpdateClients();
 
 
 					if (item.MessageContentNames.Count > 0)
-						{
-							MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
-						}
-						else
-						{
-							TextBlock message = new TextBlock() { Text = item.UserSender.Login + ": " + item.MessageText };
-							Grid.SetRow(message, 1);
-							sp_Messeges.Children.Add(message);
-						}
+					{
+						MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
 					}
-
+					else
+					{
+						TextBlock message = new TextBlock() { Text = item.UserSender.Login + ": " + item.MessageText };
+						Grid.SetRow(message, 1);
+						sp_Messeges.Children.Add(message);
+					}
 				}
-				ScrollDown();
-			
+
+			}
+			ScrollDown();
 		}
 
 		void ReadAllHotMessages()
@@ -267,12 +266,12 @@ namespace Client.Windows
 			});
 		}
 
-		void ScrollDown()
+		public void ScrollDown()
 		{
 			scrollMessage.ScrollToVerticalOffset(int.MaxValue);
 		}
 
-		void MakeAttachment(string _senderLogin, string _reciverLogin, string _message, List<string> _fileNames, StackPanel _sp)
+		public void MakeAttachment(string _senderLogin, string _reciverLogin, string _message, List<string> _fileNames, StackPanel _sp)
 		{
 			StackPanel TextAndAttachments = new StackPanel() { Name = "sp_TextAndAttachments" };
 			TextBlock ArcMessage = new TextBlock() { Text = _senderLogin + ": " + _message };
@@ -325,7 +324,7 @@ namespace Client.Windows
 			_sp.Children.Add(TextAndAttachments);
 		}
 
-		void WriteToArchive(ArchiveMessage archive, string _reciverLogin, string _senderLogin)
+		public void WriteToArchive(ArchiveMessage archive, string _reciverLogin, string _senderLogin)
 		{
 			string path = $"{Directory.GetCurrentDirectory()}\\Clients\\{_reciverLogin}\\{_senderLogin}.json";
 			List<ArchiveMessage> arcList = new List<ArchiveMessage>();
@@ -355,6 +354,11 @@ namespace Client.Windows
 		{
 			ClientCommands command = new ClientCommands();
 			main.SaveAttachmentPath = command.GiveMeAttachments(main.STREAM, ((Button)sender).DataContext.ToString());
+		}
+
+		private void Window_Closing(object sender, System.ComponentModel.CancelEventArgs e)
+		{
+			main.UpdateMessagesInChatRoom -= ReadAllHotMessages;
 		}
 	}
 }
