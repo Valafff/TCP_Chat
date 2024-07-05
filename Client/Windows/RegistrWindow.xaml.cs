@@ -15,12 +15,15 @@ using System.Windows.Media.Imaging;
 using System.Windows.Shapes;
 using System.Reflection;
 using System.CodeDom;
+using ConfigSerializeDeserialize;
+using Client.Models;
 
 namespace Client.Windows
 {
 	public partial class RegistrationWindow : Window
 	{
 		MainMenu main;
+		UserConfig user = new UserConfig();
 		public RegistrationWindow(MainMenu mainmenu)
 		{
 			InitializeComponent();
@@ -51,6 +54,13 @@ namespace Client.Windows
 			}
 			else
 			{
+				user.Login = TbUserLogin.Text;
+				user.Password = TbUserPassword.Password;
+				user.FirstName = TbUserName.Text;
+				user.SecondName = TbUserSecondName.Text;
+				user.AutoAuthtorization = (bool)ChB_AutoAuthrize.IsChecked;
+				ConfigWriteReadJson.ReWriteConfig(user, "UserConfig.json");
+
 				main.Disconnect();
 				main.ReloadConnection();
 				(DataContext as MainMenu).BLLClient.Password = TbUserPassword.Password;
