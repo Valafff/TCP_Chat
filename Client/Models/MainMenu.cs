@@ -55,7 +55,7 @@ namespace Client.ViewModels
 		//}
 
 		Server.BLL.Models.BLLMessageModel _archHiveMessages;
-		public Server.BLL.Models.BLLMessageModel ArchhiveMessages
+		public Server.BLL.Models.BLLMessageModel OutputMessage
 		{
 			get => _archHiveMessages;
 			set => SetField(ref _archHiveMessages, value);
@@ -128,7 +128,7 @@ namespace Client.ViewModels
 			Title = "МиниЧат";
 			BLLClient = new Server.BLL.Models.BLLClientModel();
 			UICLients = new ObservableCollection<UIClientModel>();
-			ArchhiveMessages = new Server.BLL.Models.BLLMessageModel() { UserReciver = new Server.BLL.Models.BLLSlimClientModel(), UserSender = new Server.BLL.Models.BLLSlimClientModel(), MessageContentNames = new List<string>() };
+			OutputMessage = new Server.BLL.Models.BLLMessageModel() { UserReciver = new Server.BLL.Models.BLLSlimClientModel(), UserSender = new Server.BLL.Models.BLLSlimClientModel(), MessageContentNames = new List<string>() };
 			AllMessagesList = new Dictionary<UIClientModel, List<ArchiveMessage>>();
 			LoadingAttachments_KeyNameValuePath = new Dictionary<string, string>();
 			ActiveClients = new List<string>();
@@ -166,10 +166,10 @@ namespace Client.ViewModels
 				execute: _ =>
 				{
 					AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
-					byte[] arr = Server.BLL.Services.CourierServices.Packer(ArchhiveMessages, com.CommandMessageTo, LoadingAttachments_KeyNameValuePath);
+					byte[] arr = Server.BLL.Services.CourierServices.Packer(OutputMessage, com.CommandMessageTo, LoadingAttachments_KeyNameValuePath);
 					SendMessageToServer(STREAM, arr);
 				},
-				canExecute => ArchhiveMessages.UserReciver != null
+				canExecute => OutputMessage.UserReciver != null
 				);
 		}
 
@@ -520,20 +520,19 @@ namespace Client.ViewModels
 			}
 			DirectoryInfo ClientDirectory = new DirectoryInfo(Directory.GetCurrentDirectory() + $"\\Clients\\");
 			DirectoryInfo[] directories = ClientDirectory.GetDirectories();
-
-			var targetDir = directories.First(d => d.Name.Contains( BLLClient.Login));
-			//foreach (var item in directories)
-			//{
-				FileInfo[] files =  targetDir.GetFiles("*.json");
+			if (directories.Length > 0)
+			{
+				var targetDir = directories.First(d => d.Name.Contains(BLLClient.Login));
+				FileInfo[] files = targetDir.GetFiles("*.json");
 				foreach (var file in files)
 				{
 					var tempMessages = new List<ArchiveMessage>();
 					using FileStream fs = new FileStream(file.FullName, FileMode.Open);
 					tempMessages = JsonSerializer.Deserialize<List<ArchiveMessage>>(fs);
-					
+
 					dict.Add(key: _clients.First(c => file.Name.Contains(c.Login)), value: tempMessages);
 				}
-			//}
+			}
 			return dict;
 		}
 

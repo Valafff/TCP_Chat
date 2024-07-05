@@ -92,24 +92,35 @@ namespace Client.Windows
 				DirectoryInfo directory = new DirectoryInfo(Directory.GetCurrentDirectory() + "\\Clients\\");
 				directory.CreateSubdirectory($"{UIClientReciverModel.Login}\\");
 			}
-			main.ArchhiveMessages.UserReciver.Login = UIClientReciverModel.Login;
-			main.ArchhiveMessages.UserSender.Login = SenderLogin;
-			main.ArchhiveMessages.MessageText = TB_MessegeTo.Text;
-			main.ArchhiveMessages.Date = DateTime.Now;
-			main.ArchhiveMessages.IsRead = 0;
-			main.ArchhiveMessages.IsDelivered = 0;
-			//Если файл есть - добавляется новое сообщение с датой.
-			string outputMessageLog = $"{main.ArchhiveMessages.Date}\t{SenderLogin}:\t{main.ArchhiveMessages.MessageText}";
-			using (var sw = new StreamWriter(filePath, true, Encoding.UTF8))
-			{
-				sw.WriteLine(outputMessageLog);
-				sw.Flush();
-			}
+			main.OutputMessage.UserReciver.Login = UIClientReciverModel.Login;
+			main.OutputMessage.UserSender.Login = SenderLogin;
+			main.OutputMessage.MessageText = TB_MessegeTo.Text;
+			main.OutputMessage.Date = DateTime.Now;
+			main.OutputMessage.IsRead = 0;
+			main.OutputMessage.IsDelivered = 0;
+
+			//Запись в архив
+			ArchiveMessage archive = new ArchiveMessage();
+			archive.Date = main.OutputMessage.Date;
+			archive.Sender = main.OutputMessage.UserSender.Login;
+			archive.Reciver = main.OutputMessage.UserReciver.Login;
+			archive.TextMessage = main.OutputMessage.MessageText;
+			archive.FilesNames = main.OutputMessage.MessageContentNames;
+			WriteToArchive(archive, archive.Sender, archive.Reciver);
+
+			////Если файл есть - добавляется новое сообщение с датой.
+			//string outputMessageLog = $"{main.OutputMessage.Date}\t{SenderLogin}:\t{main.OutputMessage.MessageText}";
+			//using (var sw = new StreamWriter(filePath, true, Encoding.UTF8))
+			//{
+			//	sw.WriteLine(outputMessageLog);
+			//	sw.Flush();
+			//}
+
 			main.PushMessage.Execute(main);
 
-			TextBlock message = new TextBlock() { Text = $"{SenderLogin}:\t{main.ArchhiveMessages.MessageText}" };
+			TextBlock message = new TextBlock() { Text = $"{SenderLogin}:\t{main.OutputMessage.MessageText}" };
 			message.HorizontalAlignment = HorizontalAlignment.Right;
-			if ($"{SenderLogin}:\t{main.ArchhiveMessages.MessageText}".Length > 20)
+			if ($"{SenderLogin}:\t{main.OutputMessage.MessageText}".Length > 20)
 			{
 				message.Width = 250;
 			}
@@ -150,29 +161,6 @@ namespace Client.Windows
 						Grid.SetRow(ArcMessage, 1);
 						sp_Messeges.Children.Add(ArcMessage);
 					}
-
-
-
-
-
-
-
-					//TextBlock message = new TextBlock() { Text = $"{item.Sender}: {}" };
-					//if (mes.Length > 20)
-					//{
-					//	message.Width = 250;
-					//}
-					//message.TextWrapping = TextWrapping.Wrap;
-					//if (tempLogin.Contains(SenderLogin))
-					//{
-					//	message.HorizontalAlignment = HorizontalAlignment.Right;
-					//}
-					//else
-					//{
-					//	message.HorizontalAlignment = HorizontalAlignment.Left;
-					//}
-					//Grid.SetRow(message, 1);
-					//sp_Messeges.Children.Add(message);
 				}
 
 			//Непрочитанные сообщения
@@ -191,31 +179,9 @@ namespace Client.Windows
 					archive.Reciver = item.UserReciver.Login;
 					archive.TextMessage = item.MessageText;
 					archive.FilesNames = item.MessageContentNames;
-
-					string path = $"{Directory.GetCurrentDirectory()}\\Clients\\{item.UserReciver.Login}\\{item.UserSender.Login}.json";
-					List<ArchiveMessage> arcList = new List<ArchiveMessage>();
-
-					if (File.Exists(path))
-					{
-						using (FileStream fs = new FileStream(path, FileMode.Open))
-						{
-							if (fs.Length > 0)
-							{
-								arcList = JsonSerializer.Deserialize<List<ArchiveMessage>>(fs);
-							}
-						}
-					}
-					else
-					{
-						if (!Directory.Exists($"{Directory.GetCurrentDirectory()}\\Clients\\{item.UserReciver.Login}"))
-							Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}\\Clients\\{item.UserReciver.Login}");
-					}
-					arcList.Add(archive);
-
-					using (FileStream fs = new FileStream(path, FileMode.Create))
-					{
-						JsonSerializer.Serialize(fs, arcList, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
-					}
+					
+					//Запись в архив
+					WriteToArchive(archive, item.UserReciver.Login, item.UserSender.Login);
 
 					// метод извещающий сервер о получении сообщения
 					ClientCommands commands = new ClientCommands();
@@ -306,6 +272,32 @@ namespace Client.Windows
 			_sp.Children.Add(TextAndAttachments);
 		}
 
+		void WriteToArchive(ArchiveMessage archive, string _reciverLogin, string _senderLogin)
+		{
+			string path = $"{Directory.GetCurrentDirectory()}\\Clients\\{_reciverLogin}\\{_senderLogin}.json";
+			List<ArchiveMessage> arcList = new List<ArchiveMessage>();
+
+			if (File.Exists(path))
+			{
+				using (FileStream fs = new FileStream(path, FileMode.Open))
+				{
+					if (fs.Length > 0)
+					{
+						arcList = JsonSerializer.Deserialize<List<ArchiveMessage>>(fs);
+					}
+				}
+			}
+			else
+			{
+				if (!Directory.Exists($"{Directory.GetCurrentDirectory()}\\Clients\\{_reciverLogin}"))
+					Directory.CreateDirectory($"{Directory.GetCurrentDirectory()}\\Clients\\{_reciverLogin}");
+			}
+			arcList.Add(archive);
+			using (FileStream fs = new FileStream(path, FileMode.Create))
+			{
+				JsonSerializer.Serialize(fs, arcList, new JsonSerializerOptions { WriteIndented = true, Encoder = JavaScriptEncoder.UnsafeRelaxedJsonEscaping });
+			}
+		}
 		private void Bt_AttachmentsToSave_Click(object sender, RoutedEventArgs e)
 		{
 			ClientCommands command = new ClientCommands();

@@ -100,8 +100,9 @@ namespace Client.Services
 			Server.Tools.DataToBinaryWriter.WriteData(_stream, buffer);
 		}
 
-		public void GiveMeAttachments(Stream _stream, string _attachments)
+		public string GiveMeAttachments(Stream _stream, string _attachments)
 		{
+			//TODO дописать метод
 			string[] names = _attachments.Split(':', StringSplitOptions.RemoveEmptyEntries);
 			string savePath = "";
 
@@ -113,19 +114,12 @@ namespace Client.Services
 				savePath = dialog.FileName;
 			}
 
-
-            Console.WriteLine(savePath);
 			foreach (string name in names)
 			{
                 Console.WriteLine(name);
             }
 
-            //SaveFileDialog sd = new SaveFileDialog();
-            //bool? result = sd.ShowDialog();
-            //if (result == true)
-            //{
-
-            //}
+			return savePath;
         }
 
 	}
