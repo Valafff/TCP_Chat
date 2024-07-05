@@ -35,11 +35,6 @@ namespace Client.ViewModels
 		public event VoidEvent UpdateWindowsWithClients;
 		public event VoidEvent UpdateMessagesInChatRoom;
 
-		//bool AuthtorizationMode = false;
-		//bool WorkMode = false;
-		//const int delay = 10;
-		//const int buffersize = 1024;
-
 		TcpClient tcpClient = new TcpClient();
 		public NetworkStream STREAM;
 		IPAddress SERVERIPADDRESS;
@@ -199,7 +194,7 @@ namespace Client.ViewModels
 				while (true)
 				{
 					Server.BLL.Models.Courier courier = Server.Tools.StreamToCourierClass.StreamToCourier(stream);
-					Console.WriteLine(courier.Header);
+					//Console.WriteLine(courier.Header);
 					try
 					{
 						//Автоматическая авторизация выполняется если сервер принимает подключение и стоит флаг автоматического входа

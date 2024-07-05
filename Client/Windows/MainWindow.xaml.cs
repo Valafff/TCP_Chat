@@ -84,17 +84,11 @@ namespace Client
 			Close();
 		}
 
-		//Глючит
-		private void MenuItem_Click_ReloadConnection(object sender, RoutedEventArgs e)
-		{
-			//main.ReloadConnection();
-		}
 
 		private void MenuItem_Click_Authtorize(object sender, RoutedEventArgs e)
 		{
 			AuthtorizeWindow window = new AuthtorizeWindow(main);
 			window.ShowDialog();
-			//UpdateClients();
 		}
 
 		private void Button_Client_Click(object sender, RoutedEventArgs e)
@@ -137,22 +131,17 @@ namespace Client
 
 		}
 
-		private void MenuItem_Click_Connect(object sender, RoutedEventArgs e)
+
+		private void MenuItem_ConnectOptions_Click(object sender, RoutedEventArgs e)
 		{
-			main.UICLients.Clear();
-			main.ActiveClients.Clear();
-			main.UnreadMessagesTextOnly.Clear();
-			main.AllMessagesList.Clear();
-			main.ReloadConnection();
+			OptionsWindow options = new OptionsWindow();
+			options.ShowDialog();
 		}
 
-		private void MenuItem_Click_Disconect(object sender, RoutedEventArgs e)
+		private void MenuItem_ClientOptions_Click(object sender, RoutedEventArgs e)
 		{
-			main.UICLients.Clear();
-			main.ActiveClients.Clear();
-			main.UnreadMessagesTextOnly.Clear();
-			main.AllMessagesList.Clear();
-			main.Disconnect();
+			ClientOptionsWindow optionsWindow = new ClientOptionsWindow(main);
+			optionsWindow.ShowDialog();
 		}
 	}
 }

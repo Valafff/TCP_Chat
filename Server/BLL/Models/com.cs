@@ -33,8 +33,5 @@ namespace Server.BLL.Models
 		public const string AnswerCatchAttachments = "CathAttachments";
 		public const string AnswerMessageSendFailed = "MessageSendFailed";
 		public const string CommandTakeHotMessage = "TakeHotMessage"; //Команда активному клиенту - прими сообщение от такого то пользователя
-
-		public const string CommandImActive = "ImActive";
-		public const string CommandImDisActive = "ImDisActive";
 	}
 }

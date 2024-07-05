@@ -187,8 +187,6 @@ namespace Server.BLL
 		{
 
 			int oldCount = 0;
-
-
 			object LockObj = new object();
 			do
 			{
@@ -196,10 +194,8 @@ namespace Server.BLL
 				Task.Delay(delay*10).Wait();
 				lock (LockObj)
 				{
-
                     if (oldCount != nowCount)
 					{
-						Console.WriteLine("!!!");
 						oldCount = nowCount;
 						//Извещает всех об отключении пользователя
 						Courier courier = new Courier();
@@ -215,9 +211,5 @@ namespace Server.BLL
 				}
 			} while (true);
 		}
-
-
-
-
 	}
 }

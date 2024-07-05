@@ -16,18 +16,19 @@
             <MenuItem Header="Работа с чатом">
                 <MenuItem Header="Новая регистрация" Click="MenuItem_NewRegistration_Click"/>
                 <MenuItem Header="Авторизация" Click="MenuItem_Click_Authtorize"/>
-                <MenuItem Header="Переподключение" Click="MenuItem_Click_ReloadConnection"/>
-                <MenuItem Header="Подключиться" Click="MenuItem_Click_Connect"/>
-                <MenuItem Header="Отключиться" Click="MenuItem_Click_Disconect"/>
                 <MenuItem Header="Выход" Click="MenuItem_Click_CloseChat"/>
             </MenuItem>
             <MenuItem Header="Настройки">
-                <MenuItem Header ="Настройки подключения"/>
-                <MenuItem Header="Настройки клиента"/>
+                <MenuItem Header ="Настройки подключения" Click="MenuItem_ConnectOptions_Click"/>
+                <MenuItem Header="Настройки клиента" Click="MenuItem_ClientOptions_Click"/>
 
             </MenuItem>
         </Menu>
         <Grid>
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="139*"/>
+                <ColumnDefinition Width="261*"/>
+            </Grid.ColumnDefinitions>
             <Grid.RowDefinitions>
                 <RowDefinition Height="5*"/>
                 <RowDefinition Height="1*"/>
@@ -48,7 +49,7 @@
                 </ItemsControl>
             </ScrollViewer>-->
 
-            <ScrollViewer>
+            <ScrollViewer Grid.ColumnSpan="2" Margin="0,0,0,69" Grid.RowSpan="2">
                 <StackPanel x:Name="ClientsStack" Orientation="Vertical" />
             </ScrollViewer>
 
