@@ -41,7 +41,11 @@ namespace Client.Windows
 			{
 				MessageBox.Show("Введите логин!");
 			}
-			if (TbUserPassword.Password == "")
+			else if (TbUserLogin.Text.Contains(" "))
+			{
+				MessageBox.Show("Несоответствующий формат логина. Запрещены символы: +=[]:*?;«,./\\<>|'пробел'");
+			}
+			else if (TbUserPassword.Password == "")
 			{
                 MessageBox.Show("Введите пароль!");
 			}

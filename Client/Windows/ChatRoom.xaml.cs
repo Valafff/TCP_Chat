@@ -187,19 +187,19 @@ namespace Client.Windows
 						// метод извещающий сервер о получении сообщения
 						ClientCommands commands = new ClientCommands();
 						commands.MessegesDelivered(main.STREAM, newMessages);
-					//обновление записей непрочитанных сообщений
-					for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
+						//обновление записей непрочитанных сообщений
+						for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
 						{
 							if (main.UnreadMessagesTextOnly[i].Id == item.Id)
 							{
 								main.UnreadMessagesTextOnly.RemoveAt(i);
 							}
 						}
-						main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
-						Window.UpdateClients();
+					main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
+					Window.UpdateClients();
 
 
-						if (item.MessageContentNames.Count > 0)
+					if (item.MessageContentNames.Count > 0)
 						{
 							MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
 						}
@@ -226,9 +226,6 @@ namespace Client.Windows
 				if (newMessages.Count > 0)
 				{
 					ArchiveMessage archive = new ArchiveMessage();
-					//TextBlock m = new TextBlock() { Text = "Новые сообщения" };
-					//Grid.SetRow(m, 1);
-					//sp_Messeges.Children.Add(m);
 					foreach (var item in newMessages)
 					{
 						archive.Date = item.Date;

@@ -34,8 +34,6 @@ namespace Server.BLL
 			tcpListener = new TcpListener(IPAddress.Any, Port); // сервер для прослушивания
 			RegistredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
 		}
-
-
 		public async void StartServer()
 		{
 			bool itsWork = false;
@@ -69,8 +67,6 @@ namespace Server.BLL
 				tcpListener.Stop();
 			}
 		}
-
-
 
 		async Task ProcessClientAsync(TcpClient tcpClient)
 		{
@@ -148,6 +144,7 @@ namespace Server.BLL
 				//		}
 				//	}
 				//}
+
 				else
 				{
 					if (ActiveClients.Any(c => c.ActiveClient == tcpClient))
@@ -161,172 +158,18 @@ namespace Server.BLL
 				}
 			}
 
-			//async void PushActiveClients()
-			//{
-			//	try
-			//	{
-			//		Courier courier = new Courier();
-			//		List<string> OutherActiveClients = new List<string>();
-			//		foreach (var item in ActiveClients)
-			//		{
-			//			OutherActiveClients.Add(item.Login);
-			//		}
-			//		string meassage = JsonSerializer.Serialize(OutherActiveClients);
-			//		courier.Header = com.AnswerCatchActiveUsers;
-			//		courier.MessageText = meassage;
-			//		byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
-			//		//byte[] buffer = CourierServices.Packer(output);
-			//		await stream.WriteAsync(buffer, 0, buffer.Length);
-			//		await stream.FlushAsync();
-			//	}
-			//	catch (Exception ex)
-			//	{
-			//		await Console.Out.WriteLineAsync(ex.Message);
-			//		await Console.Out.WriteLineAsync("Ошибка PushActiveClients");
-			//	}
-
-			//}
-
-			////Протестировать!
-			////Для текущего подключения
-			//async void UpdateRegisterClients()
-			//{
-			//	try
-			//	{
-			//		List<string> RegisteredClients = new List<string>();
-			//		foreach (var item in RegistredClients)
-			//		{
-			//			RegisteredClients.Add(item.Value);
-			//		}
-			//		Content content = new Content();
-			//		content.ServiceText = com.AnswerCatchUsers;
-			//		content.Entity = JsonSerializer.SerializeToUtf8Bytes(RegisteredClients);
-			//		var meassage = JsonSerializer.SerializeToUtf8Bytes(content);
-			//		await stream.WriteAsync(meassage, 0, meassage.Length);
-			//		await stream.FlushAsync();
-			//	}
-			//	catch (Exception ex)
-			//	{
-			//		await Console.Out.WriteLineAsync(ex.Message);
-			//		await Console.Out.WriteLineAsync("Ошибка PushRegistredClients");
-			//	}
-
-			//}
-
-			////Протестировать!
-			////Для текущего клиента
-			//async void PushUnreadMessages()
-			//{
-
-			//	await Console.Out.WriteLineAsync("TODO Push unread messeges");
-
-			//	try
-			//	{
-			//		string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
-			//		int userId = (RegistredClients.First(l => l.Value == userReciverLogin)).Key;
-			//		MessageService service = new MessageService();
-			//		//Получен список непрочитанных сообщений с ссылками на вложения
-			//		List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, RegistredClients);
-
-			//		//foreach (var message in unreadMessages)
-			//		//{
-			//		//	byte[] outputArray = CourierServices.Packer(message.UserSender.Login, userReciverLogin, AnswerCatchMessages, message.MessageText, message.MessageContentNames);
-			//		//	await stream.WriteAsync(outputArray, 0, outputArray.Length);
-			//		//	await stream.FlushAsync();
-
-			//		//	//внесение данных в БД об отправлении сообщения ПОЛУЧЕНИЕ НЕ ФИКСИРУЕТЯ
-			//		//	message.IsDelivered = 1;
-			//		//	service.UpdateMessage(message, RegistredClients);
-			//		//}
-			//	}
-			//	catch (Exception ex)
-			//	{
-			//		Console.WriteLine(ex.Message);
-			//		Console.WriteLine("Ошибка поиска и отправления непрочитанных сообщений");
-			//	}
-
-
-			//	//try
-			//	//{
-			//	//	string userReciverLogin = (ActiveClients.First(c => c.ActiveClient == tcpClient)).Login;
-			//	//	int userId = (RegistredClients.First(l => l.Value == userReciverLogin)).Key;
-			//	//	MessageService service = new MessageService();
-			//	//	//Получен список непрочитанных сообщений с ссылками на вложения
-			//	//	List<BLLMessageModel> unreadMessages = service.GetAllUnreadMessages(userId, RegistredClients);
-
-			//	//	foreach (var message in unreadMessages)
-			//	//	{
-			//	//		byte[] outputArray = CourierServices.Packer(message.UserSender.Login, userReciverLogin, AnswerCatchMessages, message.MessageText, message.MessageContentNames);
-			//	//		await stream.WriteAsync(outputArray, 0, outputArray.Length);
-			//	//		await stream.FlushAsync();
-
-			//	//		//внесение данных в БД об отправлении сообщения ПОЛУЧЕНИЕ НЕ ФИКСИРУЕТЯ
-			//	//		message.IsDelivered = 1;
-			//	//		service.UpdateMessage(message, RegistredClients);
-			//	//	}
-			//	//}
-			//	//catch (Exception ex)
-			//	//{
-			//	//	Console.WriteLine(ex.Message);
-			//	//	Console.WriteLine("Ошибка поиска и отправления непрочитанных сообщений");
-			//	//}
-			//}
-
-			//Протестировать!
-			//Для текущего клиента
-			//async void SendNewMessage(BLLMessageModel _incomeMessage, Dictionary<string, byte[]> _fileData)
-			//{
-			//	try
-			//	{
-			//		//Запись данных в БД
-			//		MessageService service = new MessageService();
-			//		_incomeMessage.MessageContentNames = _fileData.Keys.ToList();
-			//		service.InsertMessage(_incomeMessage, RegistredClients);
-			//		if (_fileData != null && _fileData.Count > 0)
-			//		{
-			//			string directoryPath = Directory.GetCurrentDirectory() + $"\\Clients\\{_incomeMessage.UserReciver.Login}\\";
-			//			DirectoryInfo directoryInfo = new DirectoryInfo(directoryPath);
-			//			if (!directoryInfo.Exists)
-			//			{
-			//				directoryInfo.Create();
-			//			}
-			//			foreach (var file in _fileData)
-			//			{
-			//				using (FileStream fs = new FileStream(directoryPath + file.Key, FileMode.Create))
-			//				{
-			//					fs.Write(file.Value);
-			//				}
-			//			}
-			//		}
-			//		//TODO Если клиент активен - передавать на прямую
-
-			//		Courier courier = new Courier();
-			//		courier.Header = AnswerMessageSendOk;
-			//		byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
-			//		await stream.WriteAsync(buffer, 0, buffer.Length);
-			//		await stream.FlushAsync();
-
-			//	}
-			//	catch (Exception ex)
-			//	{
-			//		Courier courier = new Courier();
-			//		courier.Header = AnswerMessageSendFailed;
-			//		byte[] buffer = JsonSerializer.SerializeToUtf8Bytes(courier);
-			//		await stream.WriteAsync(buffer, 0, buffer.Length);
-			//		await stream.FlushAsync();
-			//		Console.WriteLine(ex.Message);
-			//		throw;
-			//	}
-			//}
 		}
 		void CheckActiveClients(List<ActiveClientLogin> _clients)
 		{
+			ServerCommands commands = new ServerCommands();
 			object LockObj = new object();
 			do
 			{
 				//было Task.Delay(delay)
 				Task.Delay(delay).Wait();
 				lock (LockObj)
+				{
+
 					for (int i = 0; i < _clients.Count; i++)
 					{
 						if (!_clients[i].ActiveClient.Connected)
@@ -336,6 +179,8 @@ namespace Server.BLL
 							Console.WriteLine($"Активные клиенты {_clients.Count}");
 						}
 					}
+					//commands.IamActiveBroadCastCommand(ActiveClients, RegistredClients);
+				}
 			} while (true);
 		}
 

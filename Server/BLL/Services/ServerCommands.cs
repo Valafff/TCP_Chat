@@ -45,13 +45,13 @@ namespace Server.BLL.Services
 
 				if (registrationStatus)
 				{
-					_registredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();
-					
+					_registredClients = BLL.Services.SlimUsersDictionatry.GetSlimUsersIdLogin();	
 					_activeClients.Add(new ActiveClientLogin() { ActiveClient = _tcpClient, ClientStream = _stream, Login = newClient.Login });
 
 					var buffer = CourierServices.Packer(com.AnswerRegisterOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
-					//_stream.Write(buffer, 0, buffer.Length);
+
+					IamActiveBroadCastCommand(_activeClients, _registredClients, _tcpClient);
 
 					Console.WriteLine($"Регистрация пользователя {newClient.Login} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");
@@ -90,7 +90,9 @@ namespace Server.BLL.Services
 
 					byte[] buffer = CourierServices.Packer(com.AnswerAuthorizationOk);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
-					//_stream.Write(buffer, 0, buffer.Length);
+
+					IamActiveBroadCastCommand(_activeClients, _registredClients, _tcpClient);
+
 					Console.WriteLine($"Авторизация пользователя {AuthorizeUser.Key} прошла успешно\t{DateTime.Now}");
 					Console.WriteLine($"Активные клиенты {_activeClients.Count}");
 				}
@@ -98,9 +100,6 @@ namespace Server.BLL.Services
 				{
 					var buffer = CourierServices.Packer(com.AnswerAuthorizationFailed);
 					Tools.DataToBinaryWriter.WriteData(_stream, buffer);
-
-					//_tcpClient.Close();
-					//_stream.Close();
 				}
 			}
 			catch (Exception ex)
@@ -283,10 +282,29 @@ namespace Server.BLL.Services
                 Console.WriteLine("Ошибка отправления данных вложений");
                 throw;
 			}
+		}
 
-
-
-
+		public void IamActiveBroadCastCommand(List<ActiveClientLogin> _activeClients, Dictionary<int, string> _registredClients, TcpClient _currentClient)
+		{
+			try
+			{
+				Courier courier = new Courier();
+				courier.Header = com.AnswerCatchUsers;
+				courier.MessageText = JsonSerializer.Serialize(_registredClients.Values);
+				var buffer = Services.CourierServices.Packer(courier);		
+				foreach (var client in _activeClients)
+				{
+					if (client.ActiveClient != _currentClient)
+					{
+						Tools.DataToBinaryWriter.WriteData(client.ClientStream, buffer);
+					}
+				}	
+			}
+			catch (Exception ex)
+			{
+				Console.WriteLine(ex.Message);
+				throw;
+			}
 		}
 	}
 
