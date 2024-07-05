@@ -161,11 +161,10 @@ namespace Server.BLL
 		}
 		void CheckActiveClients(List<ActiveClientLogin> _clients)
 		{
-			ServerCommands commands = new ServerCommands();
+			bool broadcast = false;
 			object LockObj = new object();
 			do
 			{
-				//было Task.Delay(delay)
 				Task.Delay(delay).Wait();
 				lock (LockObj)
 				{
@@ -177,9 +176,23 @@ namespace Server.BLL
 							Console.WriteLine($"Клиент {_clients[i].ActiveClient.Client.RemoteEndPoint} отключился\t{DateTime.Now}");
 							_clients.Remove(_clients[i]);
 							Console.WriteLine($"Активные клиенты {_clients.Count}");
+							broadcast = true;
+						}
+
+						if (broadcast)
+						{
+							//Извещает всех об отключении пользователя
+							Courier courier = new Courier();
+							courier.Header = com.AnswerCatchUsers;
+							courier.MessageText = JsonSerializer.Serialize(RegistredClients.Values);
+							var buffer = CourierServices.Packer(courier);
+							foreach (var client in ActiveClients)
+							{
+								Tools.DataToBinaryWriter.WriteData(client.ClientStream, buffer);
+							}
+							broadcast = false;
 						}
 					}
-					//commands.IamActiveBroadCastCommand(ActiveClients, RegistredClients);
 				}
 			} while (true);
 		}
