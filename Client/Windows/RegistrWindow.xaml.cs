@@ -54,6 +54,7 @@ namespace Client.Windows
 			}
 			else
 			{
+
 				user.Login = TbUserLogin.Text;
 				user.Password = TbUserPassword.Password;
 				user.FirstName = TbUserName.Text;
