@@ -154,7 +154,7 @@ namespace Server.BLL.Services
 
 		}
 
-		public void SendNewMessage(Courier _courier, Dictionary<int, string> _registredClients, Stream _stream)
+		public void SendNewMessage(Courier _courier, Dictionary<int, string> _registredClients, Stream _stream, List<ActiveClientLogin> _activeClients)
 		{
 			try
 			{
@@ -188,8 +188,18 @@ namespace Server.BLL.Services
 						}
 					}
 				}
-				//TODO Если клиент активен - передавать на прямую
 
+				//Отправка сообщений если клиент активет
+				object LockObj = new object();
+				lock (LockObj)
+				{
+					if (_activeClients.Any(l => l.Login == courier.ReciverLogin))
+					{
+						TcpClient targetClient = (_activeClients.First(c => c.Login == courier.ReciverLogin)).ActiveClient;
+						Stream targetStream = (_activeClients.First(c => c.Login == courier.ReciverLogin)).ClientStream;
+						SendUnreadMessagesForClient(_registredClients, _activeClients, targetClient, targetStream, com.CommandTakeHotMessage);
+					}	
+				}
 
 				byte[] buffer = CourierServices.Packer(com.AnswerMessageSendOk);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);
@@ -205,7 +215,7 @@ namespace Server.BLL.Services
 			}
 		}
 
-		public void SendUnreadMessagesForClient(Dictionary<int, string> _registredClients, List<ActiveClientLogin> _activeClients, TcpClient _tcpClient, Stream _stream)
+		public void SendUnreadMessagesForClient(Dictionary<int, string> _registredClients, List<ActiveClientLogin> _activeClients, TcpClient _tcpClient, Stream _stream, string _command = com.AnswerCatchMessages)
 		{
 			try
 			{
@@ -217,7 +227,7 @@ namespace Server.BLL.Services
 				List<BLLMessageModel> unreadMessages = service.GetAllUnReadMessages(userId, _registredClients);
 
 				Courier courier = new Courier();
-				courier.Header = com.AnswerCatchMessages;
+				courier.Header = _command;
 				courier.MessageText = JsonSerializer.Serialize(unreadMessages);
 				var buffer = Services.CourierServices.Packer(courier);
 				Tools.DataToBinaryWriter.WriteData(_stream, buffer);

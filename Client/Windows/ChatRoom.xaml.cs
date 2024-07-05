@@ -44,10 +44,9 @@ namespace Client.Windows
 			Title = "Сообщение пользователю " + UIClientReciverModel.Login;
 			SenderLogin = _senderLogin;
 			ClientDirectoryCreation.AddClientDirectory(_reciver.Login);
-
 			if (main.AllMessagesList.Keys.Contains(UIClientReciverModel)) Correspondence = main.AllMessagesList[UIClientReciverModel];
 			ReadAllMessages();
-
+			main.UpdateMessagesInChatRoom += ReadAllHotMessages;
 		}
 
 		private void Button_FileLoad_Click(object sender, RoutedEventArgs e)
@@ -129,89 +128,146 @@ namespace Client.Windows
 			sp_Messeges.Children.Add(message);
 			//main.RefreshUsers(main.UICLients);
 			ScrollDown();
-
+			main.LoadingAttachments_KeyNameValuePath.Clear();
+			TB_MessegeTo.Clear();
+			sp_Attachments.Children.Clear();
 		}
 
 
 		void ReadAllMessages()
 		{
-			if (Correspondence != null)
-				//Сообщения из архива
-				foreach (var item in Correspondence)
-				{
-					//var mes = item.Remove(0, 19);
-					//var tempLogin = mes.Substring(0, mes.IndexOf(":"));
+				if (Correspondence != null)
+					//Сообщения из архива
+					foreach (var item in Correspondence)
+					{
+						//var mes = item.Remove(0, 19);
+						//var tempLogin = mes.Substring(0, mes.IndexOf(":"));
 
-					if (item.FilesNames.Count > 0)
-					{
-						MakeAttachment(item.Sender, item.Reciver, item.TextMessage, item.FilesNames, sp_Messeges);
-					}
-					else
-					{
-						TextBlock ArcMessage = new TextBlock() { Text = item.Sender + ": " + item.TextMessage };
-						ArcMessage.TextWrapping = TextWrapping.Wrap;
-						if (item.Reciver == UIClientReciverModel.Login)
+						if (item.FilesNames.Count > 0)
 						{
-							ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
+							MakeAttachment(item.Sender, item.Reciver, item.TextMessage, item.FilesNames, sp_Messeges);
 						}
 						else
 						{
-							ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
+							TextBlock ArcMessage = new TextBlock() { Text = item.Sender + ": " + item.TextMessage };
+							ArcMessage.TextWrapping = TextWrapping.Wrap;
+							if (item.Reciver == UIClientReciverModel.Login)
+							{
+								ArcMessage.HorizontalAlignment = HorizontalAlignment.Right;
+							}
+							else
+							{
+								ArcMessage.HorizontalAlignment = HorizontalAlignment.Left;
+							}
+							Grid.SetRow(ArcMessage, 1);
+							sp_Messeges.Children.Add(ArcMessage);
 						}
-						Grid.SetRow(ArcMessage, 1);
-						sp_Messeges.Children.Add(ArcMessage);
 					}
-				}
 
-			//Непрочитанные сообщения
-			//Инвертировано тк. sender в контексте написания сообщения
-			var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
-			if (newMessages.Count > 0)
-			{
-				TextBlock m = new TextBlock() { Text = "Новые сообщения" };
-				ArchiveMessage archive = new ArchiveMessage();
-				Grid.SetRow(m, 1);
-				sp_Messeges.Children.Add(m);
-				foreach (var item in newMessages)
+				//Непрочитанные сообщения
+				//Инвертировано тк. sender в контексте написания сообщения
+				var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
+				if (newMessages.Count > 0)
 				{
-					archive.Date = item.Date;
-					archive.Sender = item.UserSender.Login;
-					archive.Reciver = item.UserReciver.Login;
-					archive.TextMessage = item.MessageText;
-					archive.FilesNames = item.MessageContentNames;
-					
-					//Запись в архив
-					WriteToArchive(archive, item.UserReciver.Login, item.UserSender.Login);
-
-					// метод извещающий сервер о получении сообщения
-					ClientCommands commands = new ClientCommands();
-					commands.MessegesDelivered(main.STREAM, newMessages);
-					//обновление записей
-					for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
+					TextBlock m = new TextBlock() { Text = "Новые сообщения" };
+					ArchiveMessage archive = new ArchiveMessage();
+					Grid.SetRow(m, 1);
+					sp_Messeges.Children.Add(m);
+					foreach (var item in newMessages)
 					{
-						if (main.UnreadMessagesTextOnly[i].Id == item.Id)
+						archive.Date = item.Date;
+						archive.Sender = item.UserSender.Login;
+						archive.Reciver = item.UserReciver.Login;
+						archive.TextMessage = item.MessageText;
+						archive.FilesNames = item.MessageContentNames;
+
+						//Запись в архив
+						WriteToArchive(archive, item.UserReciver.Login, item.UserSender.Login);
+
+						// метод извещающий сервер о получении сообщения
+						ClientCommands commands = new ClientCommands();
+						commands.MessegesDelivered(main.STREAM, newMessages);
+					//обновление записей непрочитанных сообщений
+					for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
 						{
-							main.UnreadMessagesTextOnly.RemoveAt(i);
+							if (main.UnreadMessagesTextOnly[i].Id == item.Id)
+							{
+								main.UnreadMessagesTextOnly.RemoveAt(i);
+							}
+						}
+						main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
+						Window.UpdateClients();
+
+
+						if (item.MessageContentNames.Count > 0)
+						{
+							MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
+						}
+						else
+						{
+							TextBlock message = new TextBlock() { Text = item.UserSender.Login + ": " + item.MessageText };
+							Grid.SetRow(message, 1);
+							sp_Messeges.Children.Add(message);
 						}
 					}
-					main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
-					Window.UpdateClients();
 
+				}
+				ScrollDown();
+			
+		}
 
-					if (item.MessageContentNames.Count > 0)
+		void ReadAllHotMessages()
+		{
+			Application.Current.Dispatcher.Invoke(() =>
+			{
+				//Непрочитанные сообщения
+				//Инвертировано тк. sender в контексте написания сообщения
+				var newMessages = main.UnreadMessagesTextOnly.FindAll(l => l.UserSender.Login == UIClientReciverModel.Login);
+				if (newMessages.Count > 0)
+				{
+					ArchiveMessage archive = new ArchiveMessage();
+					//TextBlock m = new TextBlock() { Text = "Новые сообщения" };
+					//Grid.SetRow(m, 1);
+					//sp_Messeges.Children.Add(m);
+					foreach (var item in newMessages)
 					{
-						MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
-					}
-					else
-					{
-						TextBlock message = new TextBlock() { Text = item.UserSender.Login + ": " + item.MessageText };
-						Grid.SetRow(message, 1);
-						sp_Messeges.Children.Add(message);
+						archive.Date = item.Date;
+						archive.Sender = item.UserSender.Login;
+						archive.Reciver = item.UserReciver.Login;
+						archive.TextMessage = item.MessageText;
+						archive.FilesNames = item.MessageContentNames;
+
+						//Запись в архив
+						WriteToArchive(archive, item.UserReciver.Login, item.UserSender.Login);
+
+						// метод извещающий сервер о получении сообщения
+						ClientCommands commands = new ClientCommands();
+						commands.MessegesDelivered(main.STREAM, newMessages);
+						//обновление записей непрочитанных сообщений
+						for (int i = 0; i < main.UnreadMessagesTextOnly.Count; i++)
+						{
+							if (main.UnreadMessagesTextOnly[i].Id == item.Id)
+							{
+								main.UnreadMessagesTextOnly.RemoveAt(i);
+							}
+						}
+						main.ResultStringBuilder(main.UICLients, main.UnreadMessagesTextOnly);
+						Window.UpdateClients();
+
+						if (item.MessageContentNames.Count > 0)
+						{
+							MakeAttachment(item.UserSender.Login, item.UserReciver.Login, item.MessageText, item.MessageContentNames, sp_Messeges);
+						}
+						else
+						{
+							TextBlock message = new TextBlock() { Text = item.UserSender.Login + ": " + item.MessageText };
+							Grid.SetRow(message, 1);
+							sp_Messeges.Children.Add(message);
+						}
 					}
 				}
-
-			}
-			ScrollDown();
+				ScrollDown();
+			});
 		}
 
 		void ScrollDown()

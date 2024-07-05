@@ -17,9 +17,9 @@ namespace Server.BLL.Models
 		public const string CommandAuthorizeMe = "AuthorizeMe";
 		public const string AnswerAuthorizationOk = "AuthorizationOkGoStep3";
 		public const string AnswerAuthorizationFailed = "AuthorizationFailed";
-		public const string CommandDeleteMe = "DeleteMe";
-		public const string AnswerDeleteOk = "DeleteOkGoStep1";
-		public const string AnswerDeleteFailed = "DeleteFailed";
+		//public const string CommandDeleteMe = "DeleteMe";
+		//public const string AnswerDeleteOk = "DeleteOkGoStep1";
+		//public const string AnswerDeleteFailed = "DeleteFailed";
 		public const string CommandGetMeUsers = "GetMeUsers";
 		public const string CommandGetMeActiveUsers = "GetMeActiveUsers";
 		public const string AnswerCatchUsers = "CatchUsers";
@@ -31,8 +31,7 @@ namespace Server.BLL.Models
 		public const string CommandMessageDeliveredOK = "MessageDeliveredOK";
 		public const string CommandGiveMeAttachments = "GiveMeAttachments";
 		public const string AnswerCatchAttachments = "CathAttachments";
-
 		public const string AnswerMessageSendFailed = "MessageSendFailed";
-		public const string CommandTakeMessage = "TakeMessage"; //Команда клиенту - прими сообщение от такого то пользователя
+		public const string CommandTakeHotMessage = "TakeHotMessage"; //Команда активному клиенту - прими сообщение от такого то пользователя
 	}
 }

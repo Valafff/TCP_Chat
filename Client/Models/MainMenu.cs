@@ -33,6 +33,7 @@ namespace Client.ViewModels
 		public event VoidEvent CloseRegistrationWindowEvent;
 		public event VoidEvent CloseAuthWindowEvent;
 		public event VoidEvent UpdateWindowsWithClients;
+		public event VoidEvent UpdateMessagesInChatRoom;
 
 		//bool AuthtorizationMode = false;
 		//bool WorkMode = false;
@@ -279,6 +280,21 @@ namespace Client.ViewModels
 						if (courier.Header == com.AnswerCatchAttachments)
 						{
 							commands.SaveAttachments(SaveAttachmentPath, courier);
+						}
+						if (courier.Header == com.CommandTakeHotMessage)
+						{
+							UnreadMessagesTextOnly = commands.ReadMessagesTextOnly(courier);
+							//Обновление UI chatRoom
+							if (UpdateMessagesInChatRoom != null)
+							{
+								UpdateMessagesInChatRoom();
+							}
+							//CheckActiveClients();
+							//AllMessagesList = ReadAllMessagesFromUserMemory(UICLients);
+							//ResultStringBuilder(UICLients, UnreadMessagesTextOnly);
+							////Обновление UI mainWindow
+							UpdateWindowsWithClients();
+
 						}
 
 

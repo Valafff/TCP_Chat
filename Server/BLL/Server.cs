@@ -107,7 +107,7 @@ namespace Server.BLL
 				}
 				else if (courier.Header == com.CommandMessageTo)
 				{
-					commands.SendNewMessage(courier, RegistredClients, stream);
+					commands.SendNewMessage(courier, RegistredClients, stream, ActiveClients);
 				}
 				else if (courier.Header == com.CommandGiveMeUnReadMes)
 				{
